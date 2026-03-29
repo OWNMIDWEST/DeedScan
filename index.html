@@ -193,8 +193,12 @@
   .hist-group-label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;color:#fff;background:#1a3a5c;padding:5px 12px;border-radius:5px;margin:14px 0 7px;display:inline-block;user-select:none;}
   .hist-group-label:first-child{margin-top:0;}
   .hist-table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:4px;}
-  .hist-table th{background:#e0ebf5;color:#1a3a5c;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;padding:7px 11px;text-align:left;border-bottom:1px solid var(--border);user-select:none;cursor:pointer;white-space:nowrap;}
-  .hist-table th:hover{background:#d0e0f0;}
+  .hist-table th{background:#e0ebf5;color:#1a3a5c;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;padding:7px 11px;text-align:left;border-bottom:1px solid var(--border);user-select:none;cursor:default;white-space:nowrap;}
+  .hist-table th:hover{background:#e0ebf5;}
+  .hist-table th.sortable{cursor:pointer;}
+  .hist-table th.sortable:hover{background:#d0e0f0;}
+  .hist-table th.sort-asc::after{content:' ↑';color:#1a3a5c;}
+  .hist-table th.sort-desc::after{content:' ↓';color:#1a3a5c;}
   .hist-table td{padding:7px 11px;font-size:11px;border-bottom:1px solid var(--border);vertical-align:top;}
   .hist-table tr:last-child td{border-bottom:none;}
   .hist-table tr:nth-child(even) td{background:var(--row-alt);}
@@ -464,11 +468,7 @@
     </div>
     <div class="action-bar">
       <button class="action-btn" id="copyAllBtn" onclick="copyAll()" disabled>Copy All</button>
-      <button class="action-btn" id="printBtn" onclick="printRecord()" disabled>Print / Save PDF</button>
-      <div class="export-remind-wrap">
-        <button class="action-btn primary" id="exportBtn" onclick="exportCSV()" disabled>Export CSV</button>
-        <div class="export-remind-badge" id="exportRemindBadge" style="display:none">Back up!</div>
-      </div>
+      <button class="action-btn primary" id="printBtn" onclick="printRecord()" disabled>Print / Save PDF</button>
     </div>
   </div>
 </main>
@@ -490,7 +490,12 @@
     <button class="sort-btn active" id="sortNewest" onclick="setSortDir('desc')">Newest</button>
     <button class="sort-btn" id="sortOldest" onclick="setSortDir('asc')">Oldest</button>
     <span class="hist-count" id="histCount"></span>
-    <button class="clear-all-btn" onclick="clearHistory()">Clear All</button>
+    <div class="export-remind-wrap" style="flex-shrink:0">
+      <button class="action-btn primary" id="exportBtn" onclick="exportCSV()" style="padding:5px 14px;font-size:12px;border-radius:6px;white-space:nowrap">Export CSV</button>
+      <div class="export-remind-badge" id="exportRemindBadge" style="display:none">Back up!</div>
+    </div>
+    <span class="hist-count" id="histCount"></span>
+    <button class="clear-all-btn" style="margin-left:auto" onclick="confirmClearAll()">Clear All</button>
   </div>
   <div class="dashboard-strip" id="dashStrip"></div>
   <div class="hist-body" id="histBody"></div>
@@ -514,6 +519,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/p
 let currentData=null, scanHistory=JSON.parse(localStorage.getItem('deedHistory3')||'[]');
 let apiKey=localStorage.getItem('deedApiKey')||'', pageImages=[], isPDF=false, sortDir='desc';
 let batchFiles=[], batchResults=[];
+let colSortKey=null, colSortDir='asc';
 
 const SC_COUNTIES=['Abbeville','Aiken','Allendale','Anderson','Bamberg','Barnwell','Beaufort','Berkeley','Calhoun','Charleston','Cherokee','Chester','Chesterfield','Clarendon','Colleton','Darlington','Dillon','Dorchester','Edgefield','Fairfield','Florence','Georgetown','Greenville','Greenwood','Hampton','Horry','Jasper','Kershaw','Lancaster','Laurens','Lee','Lexington','Marion','Marlboro','McCormick','Newberry','Oconee','Orangeburg','Pickens','Richland','Saluda','Spartanburg','Sumter','Union','Williamsburg','York'];
 
@@ -789,7 +795,6 @@ function renderResults(data,meta){
   document.getElementById('printStamp').textContent='Processed by Tax Deed Scan · '+new Date().toLocaleString();
   document.getElementById('copyAllBtn').disabled=false;
   document.getElementById('printBtn').disabled=false;
-  document.getElementById('exportBtn').disabled=false;
 }
 
 function row(k,v){
@@ -866,10 +871,27 @@ function deleteEntry(id){
   renderHistoryPage();updateLeftPanel();
 }
 
+function confirmClearAll(){
+  document.getElementById('clearAllPopup').classList.add('open');
+}
+
 function clearHistory(){
-  if(!confirm('Clear all scan history?'))return;
+  document.getElementById('clearAllPopup').classList.remove('open');
   scanHistory=[];localStorage.removeItem('deedHistory3');
+  localStorage.removeItem('tds_lastExportCount');
   renderHistoryPage();updateLeftPanel();
+  const badge=document.getElementById('exportRemindBadge');
+  if(badge)badge.style.display='none';
+}
+
+function sortByCol(key) {
+  if (colSortKey === key) {
+    colSortDir = colSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    colSortKey = key;
+    colSortDir = 'asc';
+  }
+  renderHistoryPage();
 }
 
 function setSortDir(dir){
@@ -935,9 +957,35 @@ function renderHistoryPage(){
   const body=document.getElementById('histBody');
   if(!items.length){body.innerHTML='<div class="hist-empty">No records found.</div>';return;}
 
-  const th=`<tr><th>Grantee</th><th>Address</th><th>Map #</th><th>Sale Price</th><th>Taxes Owed</th><th>Auction Date</th><th>Recorded</th><th></th></tr>`;
+  function thSort(label, key) {
+    const isActive = colSortKey === key;
+    const cls = isActive ? (colSortDir === 'asc' ? 'sort-asc' : 'sort-desc') : '';
+    return `<th class="sortable ${cls}" onclick="sortByCol('${key}')">${label}</th>`;
+  }
+  const th=`<tr><th>Grantee</th><th>Address</th><th>Map #</th>${thSort('Sale Price','Sale Price')}${thSort('Taxes Owed','Taxes Owed')}${thSort('Auction Date','Tax Sale Auction Date')}${thSort('Recorded','Recorded Date')}<th></th></tr>`;
 
-  const trows=list=>list.map(h=>`<tr onclick="loadEntry(${h.id})" title="Click to view">
+  function sortedList(list) {
+    if (!colSortKey) return list;
+    return [...list].sort((a, b) => {
+      let va = a.data[colSortKey] || '—';
+      let vb = b.data[colSortKey] || '—';
+      // Try numeric sort for price/tax fields
+      const na = parseFloat(va.replace(/[$,]/g,''));
+      const nb = parseFloat(vb.replace(/[$,]/g,''));
+      if (!isNaN(na) && !isNaN(nb)) {
+        return colSortDir === 'asc' ? na - nb : nb - na;
+      }
+      // Date sort
+      const da = new Date(va), db = new Date(vb);
+      if (!isNaN(da) && !isNaN(db)) {
+        return colSortDir === 'asc' ? da - db : db - da;
+      }
+      // String sort
+      return colSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  }
+
+  const trows=list=>sortedList(list).map(h=>`<tr onclick="loadEntry(${h.id})" title="Click to view">
     <td class="td-grantee">${h.data['Grantee']!=='—'?h.data['Grantee']:'<span style="color:#ccc">—</span>'}${h.meta.isDup?'<span class="dup-badge">dup</span>':''}</td>
     <td class="td-addr">${h.data['Property Address']!=='—'?h.data['Property Address']:'<span style="color:#ccc">—</span>'}</td>
     <td>${h.data['Map #']!=='—'?h.data['Map #']:'—'}</td>
@@ -1228,6 +1276,19 @@ function showLockoutTimer() {
 })();
 
 </script>
+<!-- CLEAR ALL CONFIRM POPUP -->
+<div class="export-popup-overlay" id="clearAllPopup">
+  <div class="export-popup">
+    <div class="export-popup-icon">⚠️</div>
+    <h3>Clear All History?</h3>
+    <p>This will permanently delete <strong>all scan records</strong> from this browser. This cannot be undone.<br><br>Make sure you have exported your data first.</p>
+    <div class="export-popup-btns">
+      <button class="export-popup-btn" onclick="document.getElementById('clearAllPopup').classList.remove('open')">Cancel</button>
+      <button class="export-popup-btn" style="background:#c0392b;color:#fff;border-color:#c0392b" onclick="clearHistory()">Yes, Delete All</button>
+    </div>
+  </div>
+</div>
+
 <!-- EXPORT POPUP -->
 <div class="export-popup-overlay" id="exportPopupOverlay">
   <div class="export-popup">
