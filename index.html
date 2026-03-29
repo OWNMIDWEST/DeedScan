@@ -231,6 +231,25 @@
   .county-section .hist-table { border-radius: 0 0 8px 8px; border-top: none; }
   .county-section .hist-group-label { background: #2a5a8c; border-radius: 4px; margin: 6px 0 4px; }
 
+  /* DB SYNC */
+  .sync-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap;}
+  .sync-badge.synced{background:#dcfce7;color:#166534;border:1px solid #86efac;}
+  .sync-badge.pending{background:#fef9c3;color:#854d0e;border:1px solid #fde047;}
+  .sync-badge.failed{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+  .sync-badge.off{background:#f1f5f9;color:#94a3b8;border:1px solid #e2e8f0;}
+  .db-settings-section{margin:0 12px 8px;flex-shrink:0;}
+  .db-settings-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .db-settings-header{padding:6px 10px;background:#ddeaf6;border-bottom:1px solid var(--border);font-size:10px;font-weight:600;color:#1a3a5c;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;}
+  .db-settings-body{padding:10px;display:none;flex-direction:column;gap:7px;}
+  .db-settings-body.open{display:flex;}
+  .db-row{display:flex;flex-direction:column;gap:2px;}
+  .db-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;}
+  .db-input{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:var(--text);font-size:11px;font-family:'DM Sans',sans-serif;width:100%;transition:border-color 0.15s;}
+  .db-input:focus{outline:none;border-color:#1a3a5c;}
+  .db-test-btn{width:100%;padding:7px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+  .db-test-btn:hover{background:#2a5a8c;}
+  .db-status{font-size:10px;color:var(--muted);text-align:center;min-height:14px;}
+
   /* LOCK SCREEN */
   .lock-overlay{position:fixed;inset:0;background:#1a3a5c;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:0;}
   .lock-box{background:#fff;border-radius:16px;padding:36px 32px;text-align:center;width:300px;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
@@ -383,6 +402,29 @@
       </a>
 
     </div>
+
+    <!-- DB SYNC SETTINGS -->
+    <div class="db-settings-section">
+      <div class="db-settings-card">
+        <div class="db-settings-header" onclick="toggleDBSettings()">
+          <span>Database Sync</span>
+          <span id="dbStatusBadge" class="sync-badge off">Off</span>
+        </div>
+        <div class="db-settings-body" id="dbSettingsBody">
+          <div class="db-row">
+            <div class="db-label">API Endpoint URL</div>
+            <input class="db-input" type="text" id="dbEndpoint" placeholder="https://yourapp.com/api/scans/save">
+          </div>
+          <div class="db-row">
+            <div class="db-label">Auth Token (optional)</div>
+            <input class="db-input" type="password" id="dbToken" placeholder="Bearer token or API key">
+          </div>
+          <button class="db-test-btn" onclick="testDBConnection()">Test Connection</button>
+          <button class="db-test-btn" style="background:#2e7d52;margin-top:2px" onclick="saveDBSettings()">Save Settings</button>
+          <div class="db-status" id="dbStatusMsg"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="right-panel">
@@ -394,7 +436,10 @@
       <div class="result-titlebar" id="resultTitlebar">
         <div class="rtb-top">
           <div class="rtb-title" id="rtbTitle"></div>
-          <div class="rtb-county" id="rtbCounty" style="display:none"></div>
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+            <span id="recordSyncBadge" class="sync-badge off" style="display:none"></span>
+            <div class="rtb-county" id="rtbCounty" style="display:none"></div>
+          </div>
         </div>
         <div class="rtb-meta" id="rtbMeta"></div>
       </div>
@@ -470,7 +515,7 @@ const COUNTY_GIS = {
 };
 
 window.onload=()=>{
-  updateApiStatus(); updateLeftPanel(); renderHistoryPage();
+  updateApiStatus(); updateLeftPanel(); renderHistoryPage(); initDBSettings();
   const dz=document.getElementById('dropZone');
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
   dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
@@ -677,10 +722,15 @@ async function extractData(){
     const finalCounty=parsed['County']!=='—'?parsed['County']:'';
     const meta={title:document.getElementById('scanTitle').value||parsed['Property Address']||'Untitled',county:finalCounty,notes:document.getElementById('scanNotes').value,date:new Date().toLocaleString(),isDup:!!dup};
     renderResults(parsed,meta);
-    saveToHistory(parsed,meta);
+    const newId = Date.now();
+    saveToHistory(parsed, meta, newId);
     updateLeftPanel();
     updateGISLink(finalCounty, parsed['Map #']);
-    setStatus('Extraction complete.',false);
+    // Show sync badge
+    const sb = document.getElementById('recordSyncBadge');
+    if (sb) sb.style.display = dbEndpoint ? 'inline-flex' : 'none';
+    syncToDB(parsed, meta, newId);
+    setStatus('Extraction complete.', false);
   }catch(e){setStatus('Error: '+e.message,false);}
   document.getElementById('extractBtn').disabled=false;
 }
@@ -777,8 +827,9 @@ function printRecord(){
   window.print();
 }
 
-function saveToHistory(data,meta){
-  scanHistory.unshift({id:Date.now(),meta,data});
+function saveToHistory(data,meta,id){
+  const entryId=id||Date.now();
+  scanHistory.unshift({id:entryId,meta,data});
   localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));
 }
 
@@ -924,6 +975,102 @@ function exportCSV(){
   const rows=[headers,...scanHistory.map(h=>[h.meta.title||'',h.meta.county||'',h.meta.notes||'',h.meta.date||'',h.meta.isDup?'Yes':'No',...dataKeys.map(k=>(h.data[k]&&h.data[k]!=='—')?h.data[k]:'')])]
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='taxdeedscan_export.csv';a.click();
+}
+
+// ── DATABASE SYNC ──
+let dbEndpoint = localStorage.getItem('tds_dbEndpoint') || '';
+let dbToken = localStorage.getItem('tds_dbToken') || '';
+
+function initDBSettings() {
+  document.getElementById('dbEndpoint').value = dbEndpoint;
+  document.getElementById('dbToken').value = dbToken;
+  updateDBBadge();
+}
+
+function toggleDBSettings() {
+  const body = document.getElementById('dbSettingsBody');
+  body.classList.toggle('open');
+}
+
+function saveDBSettings() {
+  dbEndpoint = document.getElementById('dbEndpoint').value.trim();
+  dbToken = document.getElementById('dbToken').value.trim();
+  localStorage.setItem('tds_dbEndpoint', dbEndpoint);
+  localStorage.setItem('tds_dbToken', dbToken);
+  updateDBBadge();
+  document.getElementById('dbStatusMsg').textContent = 'Settings saved.';
+  setTimeout(() => { document.getElementById('dbStatusMsg').textContent = ''; }, 2000);
+}
+
+function updateDBBadge() {
+  const badge = document.getElementById('dbStatusBadge');
+  if (dbEndpoint) {
+    badge.textContent = 'Configured';
+    badge.className = 'sync-badge pending';
+  } else {
+    badge.textContent = 'Off';
+    badge.className = 'sync-badge off';
+  }
+}
+
+async function testDBConnection() {
+  const url = document.getElementById('dbEndpoint').value.trim();
+  const token = document.getElementById('dbToken').value.trim();
+  if (!url) { document.getElementById('dbStatusMsg').textContent = 'Please enter an endpoint URL.'; return; }
+  document.getElementById('dbStatusMsg').textContent = 'Testing...';
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = token.startsWith('Bearer ') ? token : 'Bearer ' + token;
+    const res = await fetch(url, { method: 'OPTIONS', headers });
+    document.getElementById('dbStatusMsg').textContent = '✓ Endpoint reachable (status ' + res.status + ')';
+    document.getElementById('dbStatusBadge').textContent = 'Connected';
+    document.getElementById('dbStatusBadge').className = 'sync-badge synced';
+  } catch(e) {
+    document.getElementById('dbStatusMsg').textContent = '✗ Could not reach endpoint.';
+    document.getElementById('dbStatusBadge').textContent = 'Error';
+    document.getElementById('dbStatusBadge').className = 'sync-badge failed';
+  }
+}
+
+async function syncToDB(data, meta, entryId) {
+  if (!dbEndpoint) return;
+  const badge = document.getElementById('recordSyncBadge');
+  if (badge) { badge.style.display = 'inline-flex'; badge.textContent = 'Syncing...'; badge.className = 'sync-badge pending'; }
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (dbToken) headers['Authorization'] = dbToken.startsWith('Bearer ') ? dbToken : 'Bearer ' + dbToken;
+    const payload = {
+      scanId: entryId,
+      scannedAt: meta.date,
+      title: meta.title,
+      county: meta.county,
+      notes: meta.notes,
+      isDuplicate: meta.isDup || false,
+      documentType: data['Document Type'] !== '—' ? data['Document Type'] : null,
+      taxSaleAuctionDate: data['Tax Sale Auction Date'] !== '—' ? data['Tax Sale Auction Date'] : null,
+      recordedDate: data['Recorded Date'] !== '—' ? data['Recorded Date'] : null,
+      seller: data['Seller'] !== '—' ? data['Seller'] : null,
+      salePrice: data['Sale Price'] !== '—' ? data['Sale Price'] : null,
+      grantee: data['Grantee'] !== '—' ? data['Grantee'] : null,
+      granteeAddress: data['Grantee Address'] !== '—' ? data['Grantee Address'] : null,
+      priorOwners: data['Prior Owner(s)'] !== '—' ? data['Prior Owner(s)'] : null,
+      taxesOwed: data['Taxes Owed'] !== '—' ? data['Taxes Owed'] : null,
+      propertyAddress: data['Property Address'] !== '—' ? data['Property Address'] : null,
+      mapNumber: data['Map #'] !== '—' ? data['Map #'] : null,
+      legalDescription: data['Legal Description'] !== '—' ? data['Legal Description'] : null,
+    };
+    const res = await fetch(dbEndpoint, { method: 'POST', headers, body: JSON.stringify(payload) });
+    if (res.ok) {
+      if (badge) { badge.textContent = '✓ Synced to DB'; badge.className = 'sync-badge synced'; }
+      // Mark in local history
+      const entry = scanHistory.find(h => h.id === entryId);
+      if (entry) { entry.meta.synced = true; localStorage.setItem('deedHistory3', JSON.stringify(scanHistory)); }
+    } else {
+      if (badge) { badge.textContent = '✗ Sync failed'; badge.className = 'sync-badge failed'; }
+    }
+  } catch(e) {
+    if (badge) { badge.textContent = '✗ Sync failed'; badge.className = 'sync-badge failed'; }
+  }
 }
 
 // ── ACCESS CODE (change '1234' to your preferred 4-digit code) ──
