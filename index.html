@@ -335,12 +335,32 @@
     <!-- COUNTY GIS LINKS -->
     <div class="links-section" id="linksSection" style="display:none">
       <div class="links-title">Quick Links</div>
-      <a class="link-item" id="gisLink" href="#" target="_blank">
+      <a class="link-item" href="https://www.greenvillecounty.org/GIS/GreenevilleMapViewer.aspx" target="_blank">
         <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-        <span id="gisLinkText">County GIS / Tax Records</span>
+        Greenville Maps
+      </a>
+      <a class="link-item" href="https://qpublic.schneidercorp.com/Application.aspx?AppID=770&LayerID=13618&PageTypeID=2&PageID=5994" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        qPublic — Spartanburg County
+      </a>
+      <a class="link-item" href="https://www.andersoncountygis.com/" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        Anderson County GIS
+      </a>
+      <a class="link-item" href="https://maps.lexingtonsc.gov/onemap/" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        One Map — Lexington County
+      </a>
+      <a class="link-item" href="https://gis.richlandcountysc.gov/rcgis/" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        Richland County Internet Mapping
+      </a>
+      <a class="link-item" href="https://www.charlestoncounty.org/departments/gis/gis-mapping.php" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        Charleston County SC GIS
       </a>
       <a class="link-item" href="https://www.sccourts.org/caseSearch/" target="_blank">
-        <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 007.07 7.07l1.71-1.71"/></svg>
         SC Court Records
       </a>
 
@@ -416,14 +436,14 @@ let batchFiles=[], batchResults=[];
 const SC_COUNTIES=['Abbeville','Aiken','Allendale','Anderson','Bamberg','Barnwell','Beaufort','Berkeley','Calhoun','Charleston','Cherokee','Chester','Chesterfield','Clarendon','Colleton','Darlington','Dillon','Dorchester','Edgefield','Fairfield','Florence','Georgetown','Greenville','Greenwood','Hampton','Horry','Jasper','Kershaw','Lancaster','Laurens','Lee','Lexington','Marion','Marlboro','McCormick','Newberry','Oconee','Orangeburg','Pickens','Richland','Saluda','Spartanburg','Sumter','Union','Williamsburg','York'];
 
 const COUNTY_GIS = {
-  'Greenville':'https://www.greenvillecounty.org/apps/gis/',
-  'Charleston':'https://www.charlestoncounty.org/departments/gis/',
-  'Richland':'https://www.richlandonline.com/Government/Departments/AssessorsTaxAssessorGIS.aspx',
+  'Greenville':'https://www.greenvillecounty.org/GIS/GreenevilleMapViewer.aspx',
+  'Spartanburg':'https://qpublic.schneidercorp.com/Application.aspx?AppID=770&LayerID=13618&PageTypeID=2&PageID=5994',
+  'Anderson':'https://www.andersoncountygis.com/',
+  'Lexington':'https://maps.lexingtonsc.gov/onemap/',
+  'Richland':'https://gis.richlandcountysc.gov/rcgis/',
+  'Charleston':'https://www.charlestoncounty.org/departments/gis/gis-mapping.php',
   'Horry':'https://www.horrycounty.org/Online-Services/GIS',
-  'Spartanburg':'https://www.spartanburgcounty.org/government/depts/gis/',
-  'Lexington':'https://www.lexingtonsc.gov/departments/geographic-information-systems',
   'York':'https://www.yorkcountygov.com/537/GIS',
-  'Anderson':'https://www.andersoncountysc.org/departments/gis/',
   'Aiken':'https://www.aikencountysc.gov/ShowContent.aspx?id=68',
   'Berkeley':'https://www.berkeleycountysc.gov/dept/gis',
   'Dorchester':'https://www.dorchestercounty.net/454/GIS',
@@ -797,10 +817,6 @@ function updateLeftPanel(){
 }
 
 function updateGISLink(county,mapNum){
-  const link=document.getElementById('gisLink');
-  const url=COUNTY_GIS[county]||'https://www.sc.gov/';
-  link.href=url;
-  document.getElementById('gisLinkText').textContent=county?(county+' County GIS / Tax Records'):'County GIS / Tax Records';
   document.getElementById('linksSection').style.display='block';
 }
 
