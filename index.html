@@ -457,10 +457,11 @@ RULES:
 - For any field not visible or not found, use exactly the string "—"
 - Document Type only appears on the first page
 - Recorded Date is in the filing stamp in the upper corner of the first page
-- Map # may also appear as Tax Map Number, Parcel ID, or TMS Number${pdfExtra}
+- Map # may also appear as Tax Map Number, Parcel ID, or TMS Number
+- Taxes Owed: look for any indicated tax amounts, delinquent taxes, or tax liability the prior owner owed (may appear as a dollar amount near prior owner info)${pdfExtra}
 
 Return ONLY this exact JSON structure:
-{"Document Type":"","Tax Sale Auction Date":"","Recorded Date":"","Sale Price":"","Seller":"","Grantee":"","Grantee Address":"","Prior Owner(s)":"","Property Address":"","County":"","Map #":"","Legal Description":""}`;
+{"Document Type":"","Tax Sale Auction Date":"","Recorded Date":"","Seller":"","Sale Price":"","Grantee":"","Grantee Address":"","Prior Owner(s)":"","Taxes Owed":"","Property Address":"","County":"","Map #":"","Legal Description":""}`;
 
   const content = pageImages.map(b64 => ({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: b64 } }));
   content.push({ type: 'text', text: prompt });
@@ -493,7 +494,7 @@ Return ONLY this exact JSON structure:
     }
 
     // Ensure all required fields
-    const requiredFields = ['Document Type','Tax Sale Auction Date','Recorded Date','Sale Price','Seller','Grantee','Grantee Address','Prior Owner(s)','Property Address','County','Map #','Legal Description'];
+    const requiredFields = ['Document Type','Tax Sale Auction Date','Recorded Date','Seller','Sale Price','Grantee','Grantee Address','Prior Owner(s)','Taxes Owed','Property Address','County','Map #','Legal Description'];
     requiredFields.forEach(f => { if (!parsed[f] || parsed[f] === 'null' || parsed[f] === null) parsed[f] = '—'; });
 
     // Auto-build title: Grantee + Recorded Date
@@ -547,7 +548,7 @@ function renderResults(data, meta) {
   const grid = document.getElementById('resultsGrid');
   grid.classList.add('visible');
   const sections = {
-    'Transaction': ['Document Type','Tax Sale Auction Date','Recorded Date','Sale Price','Seller','Grantee','Grantee Address','Prior Owner(s)'],
+    'Transaction': ['Document Type','Tax Sale Auction Date','Recorded Date','Seller','Sale Price','Grantee','Grantee Address','Prior Owner(s)','Taxes Owed'],
     'Property': ['Property Address','County','Map #','Legal Description']
   };
   let html = '';
@@ -565,8 +566,16 @@ function row(k, v) {
   const safe = String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const isEmpty = v === '—' || !v;
   const valHtml = isEmpty ? `<span class="result-val" style="color:#ccc;font-style:italic;font-weight:400;">not found in document</span>` : `<span class="result-val">${safe}</span>`;
-  const btnHtml = isEmpty ? '' : `<button class="copy-btn" onclick="copyField(this,'${safe}')">Copy</button>`;
-  return `<div class="result-row"><span class="result-key">${k}</span>${valHtml}${btnHtml}</div>`;
+  let btnHtml = '';
+  if (!isEmpty) {
+    btnHtml = `<button class="copy-btn" onclick="copyField(this,'${safe}')">Copy</button>`;
+    if (k === 'Map #') {
+      const plain = String(v).replace(/[-.\s]/g, '');
+      const plainSafe = plain.replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+      btnHtml += ` <button class="copy-btn" onclick="copyField(this,'${plainSafe}')" title="Copy without hyphens or periods"># Plain</button>`;
+    }
+  }
+  return `<div class="result-row"><span class="result-key">${k}</span>${valHtml}<span style="display:flex;gap:4px;flex-shrink:0">${btnHtml}</span></div>`;
 }
 
 function copyField(btn, val) {
@@ -687,7 +696,7 @@ function renderHistoryPage() {
 
 function exportCSV() {
   if (!scanHistory.length) return;
-  const dataKeys = ['Document Type','Tax Sale Auction Date','Recorded Date','Sale Price','Seller','Grantee','Grantee Address','Prior Owner(s)','Property Address','County','Map #','Legal Description'];
+  const dataKeys = ['Document Type','Tax Sale Auction Date','Recorded Date','Seller','Sale Price','Grantee','Grantee Address','Prior Owner(s)','Taxes Owed','Property Address','County','Map #','Legal Description'];
   const headers = ['Scan Title','County','Notes','Scan Date',...dataKeys];
   const rows = [headers,...scanHistory.map(h=>[h.meta.title||'',h.meta.county||'',h.meta.notes||'',h.meta.date||'',...dataKeys.map(k=>(h.data[k]&&h.data[k]!=='—')?h.data[k]:'')])];
   const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
