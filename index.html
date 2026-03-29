@@ -7,53 +7,43 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
-
   :root {
-    --bg: #1a3a5c;
-    --surface: #ffffff;
-    --surface2: #f0f4f8;
-    --border: #c8d8e8;
-    --accent: #1a3a5c;
-    --accent2: #2a5a8c;
-    --text: #0f1f2e;
-    --muted: #4a6880;
-    --success: #2e7d52;
-    --danger: #c0392b;
-    --section-bg: #e8f0f8;
-    --row-alt: #f7fafd;
+    --bg: #1a3a5c; --surface: #ffffff; --surface2: #f0f4f8; --border: #c8d8e8;
+    --accent: #1a3a5c; --accent2: #2a5a8c; --text: #0f1f2e; --muted: #4a6880;
+    --success: #2e7d52; --danger: #c0392b; --row-alt: #f7fafd;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-  header {
-    padding: 0 2rem; height: 56px; border-bottom: 1px solid #0d2a45;
-    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
-    background: #1a3a5c;
-  }
-  .logo { font-family: 'DM Serif Display', serif; font-size: 1.35rem; color: #ffffff; letter-spacing: 0.02em; }
+  header { padding: 0 2rem; height: 56px; border-bottom: 1px solid #0d2a45; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: #1a3a5c; }
+  .logo { font-family: 'DM Serif Display', serif; font-size: 1.35rem; color: #fff; letter-spacing: 0.02em; }
   .logo span { color: #b8d4f0; }
   .logo sub { font-family: 'DM Sans', sans-serif; font-size: 10px; color: #8ab4d4; letter-spacing: 0.08em; vertical-align: middle; margin-left: 6px; font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
 
-  .api-pill {
-    display: flex; align-items: center; gap: 6px;
-    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 20px;
-    padding: 4px 12px 4px 9px; font-size: 12px; color: #c8dff0; cursor: pointer; transition: border-color 0.15s;
-  }
+  /* NAV TABS */
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 5px 14px; font-size: 12px; color: #c8dff0; cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif; font-weight: 500; }
+  .nav-tab:hover { background: rgba(255,255,255,0.2); }
+  .nav-tab.active { background: #ffffff; color: #1a3a5c; border-color: #ffffff; }
+
+  .api-pill { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 4px 12px 4px 9px; font-size: 12px; color: #c8dff0; cursor: pointer; transition: border-color 0.15s; }
   .api-pill:hover { border-color: rgba(255,255,255,0.6); }
   .api-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); flex-shrink: 0; }
   .api-dot.on { background: var(--success); }
 
-  main { flex: 1; display: grid; grid-template-columns: 320px 1fr; overflow: hidden; height: calc(100vh - 56px); }
+  /* PAGES */
+  .page { display: none; flex: 1; overflow: hidden; }
+  .page.active { display: flex; }
 
-  /* LEFT */
+  /* ── SCAN PAGE ── */
+  #scanPage { flex-direction: row; height: calc(100vh - 56px); }
+  main { flex: 1; display: grid; grid-template-columns: 320px 1fr; overflow: hidden; width: 100%; }
+
   .left-panel { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; background: #f0f4f8; }
-  .panel-section { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.1em; color: #1a3a5c; text-transform: uppercase; font-weight: 600; flex-shrink: 0; background: #e0ebf5; }
+  .panel-section { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.1em; color: #1a3a5c; text-transform: uppercase; font-weight: 600; flex-shrink: 0; background: #e0ebf5; user-select: none; -webkit-user-select: none; }
 
-  .drop-zone {
-    margin: 12px 14px 10px; border: 1.5px dashed var(--border); border-radius: 10px;
-    padding: 20px 14px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface); flex-shrink: 0;
-  }
+  .drop-zone { margin: 12px 14px 10px; border: 1.5px dashed var(--border); border-radius: 10px; padding: 20px 14px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface); flex-shrink: 0; }
   .drop-zone:hover, .drop-zone.drag-over { border-color: #1a3a5c; background: rgba(26,58,92,0.04); }
   .drop-icon { width: 38px; height: 38px; margin: 0 auto 8px; background: var(--surface2); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); }
   .drop-icon svg { width: 18px; height: 18px; stroke: #1a3a5c; fill: none; stroke-width: 1.5; }
@@ -63,7 +53,6 @@
   .type-badge { font-size: 10px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); padding: 2px 7px; border-radius: 4px; }
   input[type="file"] { display: none; }
 
-  /* SCAN TITLE BAR */
   .scan-titlebar { margin: 0 14px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; display: none; flex-shrink: 0; }
   .scan-titlebar.visible { display: block; }
   .stb-header { padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #1a3a5c; font-weight: 600; display: flex; justify-content: space-between; align-items: center; background: #ddeaf6; user-select: none; -webkit-user-select: none; }
@@ -72,9 +61,10 @@
   .stb-label { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
   .stb-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; color: var(--text); font-size: 12px; font-family: 'DM Sans', sans-serif; width: 100%; transition: border-color 0.15s; }
   .stb-input:focus { outline: none; border-color: var(--accent); }
-  .stb-input option { background: #1a1916; }
+  .stb-input option { background: #fff; }
+  .county-auto-note { font-size: 10px; color: var(--success); margin-top: 2px; display: none; }
+  .county-auto-note.visible { display: block; }
 
-  /* PREVIEW */
   .preview-area { margin: 0 14px 8px; display: none; flex-direction: column; gap: 7px; flex-shrink: 0; }
   .preview-area.visible { display: flex; }
   .page-info { font-size: 11px; color: var(--muted); }
@@ -83,7 +73,7 @@
   .preview-scroll::-webkit-scrollbar-thumb { background: var(--border); }
   .page-thumb { width: 62px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); flex-shrink: 0; cursor: pointer; transition: border-color 0.15s; }
   .page-thumb:hover, .page-thumb.active { border-color: var(--accent); }
-  .extract-btn { width: 100%; padding: 10px; background: #1a3a5c; color: #ffffff; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .extract-btn { width: 100%; padding: 10px; background: #1a3a5c; color: #fff; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
   .extract-btn:hover { background: #2a5a8c; }
   .extract-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -93,21 +83,9 @@
   @keyframes sweep { 0%{transform:translateX(-100%)} 100%{transform:translateX(380%)} }
   .status-msg { font-size: 11px; color: var(--muted); padding: 0 14px 5px; min-height: 15px; flex-shrink: 0; }
 
-  /* HISTORY */
-  .history-wrap { flex: 1; overflow-y: auto; padding: 8px 14px 14px; }
-  .history-wrap::-webkit-scrollbar { width: 3px; }
-  .history-wrap::-webkit-scrollbar-thumb { background: #c8d8e8; }
-  .history-head { font-size: 10px; letter-spacing: 0.1em; color: #1a3a5c; text-transform: uppercase; font-weight: 600; margin-bottom: 8px; display: flex; justify-content: space-between; user-select: none; -webkit-user-select: none; }
-  .clear-btn { font-size: 10px; color: var(--muted); background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; text-decoration: underline; }
-  .clear-btn:hover { color: var(--danger); }
-  .history-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px; margin-bottom: 6px; cursor: pointer; transition: border-color 0.15s; }
-  .history-item:hover, .history-item.active { border-color: var(--accent); }
-  .hi-address { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .hi-meta { font-size: 10px; color: var(--muted); margin-top: 2px; display: flex; gap: 8px; }
-  .hi-county { color: #1a3a5c; font-weight: 600; }
+  .left-spacer { flex: 1; }
 
-  /* RIGHT */
-  .right-panel { display: flex; flex-direction: column; overflow: hidden; }
+  .right-panel { display: flex; flex-direction: column; overflow: hidden; background: var(--surface2); }
   .results-area { flex: 1; overflow-y: auto; padding: 16px; }
   .results-area::-webkit-scrollbar { width: 3px; }
   .results-area::-webkit-scrollbar-thumb { background: #c8d8e8; }
@@ -116,11 +94,10 @@
   .empty-state svg { width: 44px; height: 44px; stroke: var(--border); fill: none; stroke-width: 1; }
   .empty-state p { font-size: 13px; line-height: 1.6; }
 
-  /* RESULT TITLE BAR */
   .result-titlebar { background: #1a3a5c; border: 1px solid #0d2a45; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; display: none; }
   .result-titlebar.visible { display: block; }
   .rtb-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-  .rtb-title { font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: #ffffff; line-height: 1.3; }
+  .rtb-title { font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: #fff; line-height: 1.3; }
   .rtb-county { font-size: 11px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #c8dff0; padding: 3px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
   .rtb-meta { font-size: 11px; color: #8ab4d4; display: flex; gap: 12px; flex-wrap: wrap; }
   .rtb-meta span::before { content: '·'; margin-right: 12px; }
@@ -129,8 +106,8 @@
   .results-grid { display: none; flex-direction: column; gap: 8px; }
   .results-grid.visible { display: flex; }
   .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-  .result-section-title { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #ffffff; padding: 8px 13px 6px; border-bottom: 1px solid var(--border); font-weight: 600; background: #1a3a5c; user-select: none; -webkit-user-select: none; }
-  .result-row { display: grid; grid-template-columns: 155px 1fr auto; align-items: start; padding: 7px 13px; border-bottom: 1px solid var(--border); gap: 10px; transition: background 0.1s; }
+  .result-section-title { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; padding: 8px 13px 6px; border-bottom: 1px solid var(--border); font-weight: 600; background: #1a3a5c; user-select: none; -webkit-user-select: none; }
+  .result-row { display: grid; grid-template-columns: 170px 1fr auto; align-items: start; padding: 7px 13px; border-bottom: 1px solid var(--border); gap: 10px; transition: background 0.1s; }
   .result-row:nth-child(even) { background: var(--row-alt); }
   .result-row:last-child { border-bottom: none; }
   .result-row:hover { background: #ddeaf6; }
@@ -140,12 +117,49 @@
   .copy-btn:hover { border-color: #1a3a5c; color: #1a3a5c; }
   .copy-btn.copied { border-color: var(--success); color: var(--success); }
 
-  .action-bar { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+  .action-bar { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; background: var(--surface); }
   .action-btn { flex: 1; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
   .action-btn:hover { border-color: #1a3a5c; color: #1a3a5c; }
-  .action-btn.primary { background: #1a3a5c; color: #ffffff; border-color: #1a3a5c; font-weight: 600; }
+  .action-btn.primary { background: #1a3a5c; color: #fff; border-color: #1a3a5c; font-weight: 600; }
   .action-btn.primary:hover { background: #2a5a8c; }
   .action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* ── HISTORY PAGE ── */
+  #historyPage { flex-direction: column; height: calc(100vh - 56px); background: var(--surface2); overflow: hidden; }
+  .hist-toolbar { display: flex; align-items: center; gap: 10px; padding: 14px 20px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap; }
+  .hist-toolbar-title { font-size: 13px; font-weight: 600; color: var(--text); margin-right: 4px; user-select: none; }
+  .hist-filter { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--text); font-size: 12px; font-family: 'DM Sans', sans-serif; transition: border-color 0.15s; }
+  .hist-filter:focus { outline: none; border-color: #1a3a5c; }
+  .hist-search { flex: 1; min-width: 160px; }
+  .sort-btn { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 11px; font-family: 'DM Sans', sans-serif; color: var(--muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .sort-btn:hover, .sort-btn.active { background: #1a3a5c; color: #fff; border-color: #1a3a5c; }
+  .hist-count { font-size: 11px; color: var(--muted); margin-left: auto; white-space: nowrap; user-select: none; }
+  .clear-all-btn { font-size: 11px; color: var(--danger); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .clear-all-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+  .hist-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .hist-body::-webkit-scrollbar { width: 4px; }
+  .hist-body::-webkit-scrollbar-thumb { background: #c8d8e8; border-radius: 2px; }
+
+  .hist-group-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: #fff; background: #1a3a5c; padding: 6px 12px; border-radius: 6px; margin: 16px 0 8px; display: inline-block; user-select: none; }
+  .hist-group-label:first-child { margin-top: 0; }
+
+  .hist-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 4px; }
+  .hist-table th { background: #e0ebf5; color: #1a3a5c; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); user-select: none; -webkit-user-select: none; cursor: pointer; white-space: nowrap; }
+  .hist-table th:hover { background: #d0e0f0; }
+  .hist-table td { padding: 8px 12px; font-size: 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .hist-table tr:last-child td { border-bottom: none; }
+  .hist-table tr:nth-child(even) td { background: var(--row-alt); }
+  .hist-table tr:hover td { background: #ddeaf6; cursor: pointer; }
+  .hist-table td.td-county { color: #1a3a5c; font-weight: 600; white-space: nowrap; }
+  .hist-table td.td-price { font-weight: 500; white-space: nowrap; }
+  .hist-table td.td-date { color: var(--muted); white-space: nowrap; font-size: 11px; }
+  .hist-table td.td-addr { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-table td.td-grantee { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-del { background: none; border: none; color: #ccc; cursor: pointer; font-size: 14px; padding: 0 4px; transition: color 0.15s; }
+  .hist-del:hover { color: var(--danger); }
+
+  .hist-empty { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 13px; }
 
   /* MODAL */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 100; }
@@ -154,133 +168,163 @@
   .modal h3 { font-family: 'DM Serif Display', serif; font-size: 1.1rem; margin-bottom: 6px; color: #1a3a5c; }
   .modal p { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
   .modal-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; margin-bottom: 12px; }
-  .modal-input:focus { outline: none; border-color: var(--accent); }
+  .modal-input:focus { outline: none; border-color: #1a3a5c; }
   .modal-btns { display: flex; gap: 8px; }
   .modal-btn { flex: 1; padding: 9px; border-radius: 7px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; border: 1px solid var(--border); background: var(--surface2); color: var(--text); transition: all 0.15s; }
-  .modal-btn.save { background: var(--accent); color: #0f0e0c; border-color: var(--accent); font-weight: 600; }
+  .modal-btn.save { background: #1a3a5c; color: #fff; border-color: #1a3a5c; font-weight: 600; }
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo">Deed<span>Scan</span><sub>SC EDITION</sub></div>
-  <div class="api-pill" onclick="openModal()">
-    <div class="api-dot" id="apiDot"></div>
-    <span id="apiLabel">Set API Key</span>
+  <div class="header-right">
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('scan')">Scan</button>
+      <button class="nav-tab" onclick="showPage('history')">History</button>
+    </div>
+    <div class="api-pill" onclick="openModal()">
+      <div class="api-dot" id="apiDot"></div>
+      <span id="apiLabel">Set API Key</span>
+    </div>
   </div>
 </header>
 
-<main>
-  <!-- LEFT PANEL -->
-  <div class="left-panel">
-    <div class="panel-section">Upload Document</div>
+<!-- SCAN PAGE -->
+<div class="page active" id="scanPage">
+  <main>
+    <div class="left-panel">
+      <div class="panel-section">Upload Document</div>
 
-    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-      <div class="drop-icon">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-      </div>
-      <div class="drop-title">Drop document here</div>
-      <div class="drop-sub">click to browse · or press <kbd style="background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px;font-family:monospace;color:var(--accent)">Ctrl+V</kbd> to paste</div>
-      <div class="drop-types">
-        <span class="type-badge">PDF</span>
-        <span class="type-badge">PNG</span>
-        <span class="type-badge">JPG</span>
-        <span class="type-badge">WEBP</span>
-        <span class="type-badge">PASTE</span>
-      </div>
-    </div>
-    <input type="file" id="fileInput" accept="image/*,.pdf" onchange="handleFile(this.files[0])">
-
-    <!-- SCAN TITLE BAR -->
-    <div class="scan-titlebar" id="scanTitlebar">
-      <div class="stb-header">
-        <span>Scan Details</span>
-        <span id="pageCount" style="color:var(--muted)"></span>
-      </div>
-      <div class="stb-body">
-        <div class="stb-row">
-          <div class="stb-label">Title / Reference</div>
-          <input class="stb-input" type="text" id="scanTitle" placeholder="e.g. 123 Main St — Quitclaim">
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div class="drop-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
         </div>
-        <div class="stb-row">
-          <div class="stb-label">County</div>
-          <select class="stb-input" id="scanCounty">
-            <option value="">— Select SC County —</option>
-            <option>Abbeville</option><option>Aiken</option><option>Allendale</option>
-            <option>Anderson</option><option>Bamberg</option><option>Barnwell</option>
-            <option>Beaufort</option><option>Berkeley</option><option>Calhoun</option>
-            <option>Charleston</option><option>Cherokee</option><option>Chester</option>
-            <option>Chesterfield</option><option>Clarendon</option><option>Colleton</option>
-            <option>Darlington</option><option>Dillon</option><option>Dorchester</option>
-            <option>Edgefield</option><option>Fairfield</option><option>Florence</option>
-            <option>Georgetown</option><option>Greenville</option><option>Greenwood</option>
-            <option>Hampton</option><option>Horry</option><option>Jasper</option>
-            <option>Kershaw</option><option>Lancaster</option><option>Laurens</option>
-            <option>Lee</option><option>Lexington</option><option>Marion</option>
-            <option>Marlboro</option><option>McCormick</option><option>Newberry</option>
-            <option>Oconee</option><option>Orangeburg</option><option>Pickens</option>
-            <option>Richland</option><option>Saluda</option><option>Spartanburg</option>
-            <option>Sumter</option><option>Union</option><option>Williamsburg</option>
-            <option>York</option>
-          </select>
-        </div>
-        <div class="stb-row">
-          <div class="stb-label">Notes</div>
-          <input class="stb-input" type="text" id="scanNotes" placeholder="Optional notes...">
+        <div class="drop-title">Drop document here</div>
+        <div class="drop-sub">click to browse · or press <kbd style="background:#e8f0f8;border:1px solid #c8d8e8;border-radius:3px;padding:1px 5px;font-size:10px;font-family:monospace;color:#1a3a5c">Ctrl+V</kbd> to paste</div>
+        <div class="drop-types">
+          <span class="type-badge">PDF</span><span class="type-badge">PNG</span>
+          <span class="type-badge">JPG</span><span class="type-badge">WEBP</span><span class="type-badge">PASTE</span>
         </div>
       </div>
-    </div>
+      <input type="file" id="fileInput" accept="image/*,.pdf" onchange="handleFile(this.files[0])">
 
-    <!-- PREVIEW -->
-    <div class="preview-area" id="previewArea">
-      <div class="page-info" id="pageInfo"></div>
-      <div class="preview-scroll" id="previewScroll"></div>
-      <button class="extract-btn" id="extractBtn" onclick="extractData()">Extract Property Data</button>
-    </div>
-
-    <div class="loading-bar" id="loadingBar"><div class="loading-bar-inner"></div></div>
-    <div class="status-msg" id="statusMsg"></div>
-
-    <div class="history-wrap">
-      <div class="history-head">
-        <span>Scan History</span>
-        <button class="clear-btn" onclick="clearHistory()">Clear all</button>
+      <div class="scan-titlebar" id="scanTitlebar">
+        <div class="stb-header">
+          <span>Scan Details</span>
+          <span id="pageCount" style="color:var(--muted);font-weight:400"></span>
+        </div>
+        <div class="stb-body">
+          <div class="stb-row">
+            <div class="stb-label">Title / Reference <span style="color:#8ab4d4;font-size:9px">(auto-fills after extraction)</span></div>
+            <input class="stb-input" type="text" id="scanTitle" placeholder="Will auto-fill with Grantee + Date">
+          </div>
+          <div class="stb-row">
+            <div class="stb-label">County <span id="countyModeNote" style="color:#8ab4d4;font-size:9px"></span></div>
+            <select class="stb-input" id="scanCounty">
+              <option value="">— Select SC County —</option>
+              <option>Abbeville</option><option>Aiken</option><option>Allendale</option>
+              <option>Anderson</option><option>Bamberg</option><option>Barnwell</option>
+              <option>Beaufort</option><option>Berkeley</option><option>Calhoun</option>
+              <option>Charleston</option><option>Cherokee</option><option>Chester</option>
+              <option>Chesterfield</option><option>Clarendon</option><option>Colleton</option>
+              <option>Darlington</option><option>Dillon</option><option>Dorchester</option>
+              <option>Edgefield</option><option>Fairfield</option><option>Florence</option>
+              <option>Georgetown</option><option>Greenville</option><option>Greenwood</option>
+              <option>Hampton</option><option>Horry</option><option>Jasper</option>
+              <option>Kershaw</option><option>Lancaster</option><option>Laurens</option>
+              <option>Lee</option><option>Lexington</option><option>Marion</option>
+              <option>Marlboro</option><option>McCormick</option><option>Newberry</option>
+              <option>Oconee</option><option>Orangeburg</option><option>Pickens</option>
+              <option>Richland</option><option>Saluda</option><option>Spartanburg</option>
+              <option>Sumter</option><option>Union</option><option>Williamsburg</option>
+              <option>York</option>
+            </select>
+            <div class="county-auto-note" id="countyAutoNote">✓ Auto-detected from PDF</div>
+          </div>
+          <div class="stb-row">
+            <div class="stb-label">Notes</div>
+            <input class="stb-input" type="text" id="scanNotes" placeholder="Optional notes...">
+          </div>
+        </div>
       </div>
-      <div id="historyList"></div>
+
+      <div class="preview-area" id="previewArea">
+        <div class="page-info" id="pageInfo"></div>
+        <div class="preview-scroll" id="previewScroll"></div>
+        <button class="extract-btn" id="extractBtn" onclick="extractData()">Extract Property Data</button>
+      </div>
+
+      <div class="loading-bar" id="loadingBar"><div class="loading-bar-inner"></div></div>
+      <div class="status-msg" id="statusMsg"></div>
+      <div class="left-spacer"></div>
     </div>
+
+    <div class="right-panel">
+      <div class="results-area">
+        <div class="empty-state" id="emptyState">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          <p>Upload a deed screenshot or PDF<br>to extract property data automatically.</p>
+        </div>
+        <div class="result-titlebar" id="resultTitlebar">
+          <div class="rtb-top">
+            <div class="rtb-title" id="rtbTitle"></div>
+            <div class="rtb-county" id="rtbCounty" style="display:none"></div>
+          </div>
+          <div class="rtb-meta" id="rtbMeta"></div>
+        </div>
+        <div class="results-grid" id="resultsGrid"></div>
+      </div>
+      <div class="action-bar">
+        <button class="action-btn" id="copyAllBtn" onclick="copyAll()" disabled>Copy All Fields</button>
+        <button class="action-btn primary" id="exportBtn" onclick="exportCSV()" disabled>Export to CSV</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- HISTORY PAGE -->
+<div class="page" id="historyPage">
+  <div class="hist-toolbar">
+    <span class="hist-toolbar-title">Scan History</span>
+    <input class="hist-filter hist-search" type="text" id="histSearch" placeholder="Search grantee, address, county..." oninput="renderHistoryPage()">
+    <select class="hist-filter" id="histCountyFilter" onchange="renderHistoryPage()">
+      <option value="">All Counties</option>
+      <option>Abbeville</option><option>Aiken</option><option>Allendale</option>
+      <option>Anderson</option><option>Bamberg</option><option>Barnwell</option>
+      <option>Beaufort</option><option>Berkeley</option><option>Calhoun</option>
+      <option>Charleston</option><option>Cherokee</option><option>Chester</option>
+      <option>Chesterfield</option><option>Clarendon</option><option>Colleton</option>
+      <option>Darlington</option><option>Dillon</option><option>Dorchester</option>
+      <option>Edgefield</option><option>Fairfield</option><option>Florence</option>
+      <option>Georgetown</option><option>Greenville</option><option>Greenwood</option>
+      <option>Hampton</option><option>Horry</option><option>Jasper</option>
+      <option>Kershaw</option><option>Lancaster</option><option>Laurens</option>
+      <option>Lee</option><option>Lexington</option><option>Marion</option>
+      <option>Marlboro</option><option>McCormick</option><option>Newberry</option>
+      <option>Oconee</option><option>Orangeburg</option><option>Pickens</option>
+      <option>Richland</option><option>Saluda</option><option>Spartanburg</option>
+      <option>Sumter</option><option>Union</option><option>Williamsburg</option>
+      <option>York</option>
+    </select>
+    <select class="hist-filter" id="histGroupBy" onchange="renderHistoryPage()">
+      <option value="date">Group by Date</option>
+      <option value="county">Group by County</option>
+      <option value="none">No Grouping</option>
+    </select>
+    <button class="sort-btn active" id="sortNewest" onclick="setSortDir('desc')">Newest First</button>
+    <button class="sort-btn" id="sortOldest" onclick="setSortDir('asc')">Oldest First</button>
+    <span class="hist-count" id="histCount"></span>
+    <button class="clear-all-btn" onclick="clearHistory()">Clear All</button>
   </div>
-
-  <!-- RIGHT PANEL -->
-  <div class="right-panel">
-    <div class="results-area">
-      <div class="empty-state" id="emptyState">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-        <p>Upload a deed screenshot or PDF<br>to extract property data automatically.</p>
-      </div>
-
-      <div class="result-titlebar" id="resultTitlebar">
-        <div class="rtb-top">
-          <div class="rtb-title" id="rtbTitle"></div>
-          <div class="rtb-county" id="rtbCounty" style="display:none"></div>
-        </div>
-        <div class="rtb-meta" id="rtbMeta"></div>
-      </div>
-
-      <div class="results-grid" id="resultsGrid"></div>
-    </div>
-
-    <div class="action-bar">
-      <button class="action-btn" id="copyAllBtn" onclick="copyAll()" disabled>Copy All Fields</button>
-      <button class="action-btn primary" id="exportBtn" onclick="exportCSV()" disabled>Export History to CSV</button>
-    </div>
-  </div>
-</main>
+  <div class="hist-body" id="histBody"></div>
+</div>
 
 <!-- API MODAL -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h3>Anthropic API Key</h3>
-    <p>Your key is saved locally in your browser only — never shared. Get a free key at <strong style="color:var(--accent)">console.anthropic.com</strong></p>
+    <p>Saved locally in your browser only — never shared. Get a free key at <strong style="color:#1a3a5c">console.anthropic.com</strong></p>
     <input class="modal-input" type="password" id="modalKeyInput" placeholder="sk-ant-...">
     <div class="modal-btns">
       <button class="modal-btn" onclick="closeModal()">Cancel</button>
@@ -296,66 +340,67 @@ let currentData = null;
 let scanHistory = JSON.parse(localStorage.getItem('deedHistory3') || '[]');
 let apiKey = localStorage.getItem('deedApiKey') || '';
 let pageImages = [];
+let isPDF = false;
+let sortDir = 'desc';
+
+const SC_COUNTIES = ['Abbeville','Aiken','Allendale','Anderson','Bamberg','Barnwell','Beaufort','Berkeley','Calhoun','Charleston','Cherokee','Chester','Chesterfield','Clarendon','Colleton','Darlington','Dillon','Dorchester','Edgefield','Fairfield','Florence','Georgetown','Greenville','Greenwood','Hampton','Horry','Jasper','Kershaw','Lancaster','Laurens','Lee','Lexington','Marion','Marlboro','McCormick','Newberry','Oconee','Orangeburg','Pickens','Richland','Saluda','Spartanburg','Sumter','Union','Williamsburg','York'];
 
 window.onload = () => {
   updateApiStatus();
-  renderHistory();
+  renderHistoryPage();
   const dz = document.getElementById('dropZone');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault(); dz.classList.remove('drag-over');
-    const f = e.dataTransfer.files[0];
-    if (f) handleFile(f);
-  });
-
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
   document.addEventListener('paste', e => {
     const items = e.clipboardData && e.clipboardData.items;
     if (!items) return;
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.startsWith('image/')) {
-        const file = items[i].getAsFile();
-        if (file) { handleFile(file); break; }
-      }
-    }
+    for (let i = 0; i < items.length; i++) { if (items[i].type.startsWith('image/')) { const f = items[i].getAsFile(); if (f) { handleFile(f); break; } } }
   });
 };
 
-// API KEY
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById(p + 'Page').classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (p === 'history') renderHistoryPage();
+}
+
 function openModal() { document.getElementById('modalKeyInput').value = apiKey; document.getElementById('modalOverlay').classList.add('open'); }
 function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
-function saveKey() {
-  apiKey = document.getElementById('modalKeyInput').value.trim();
-  localStorage.setItem('deedApiKey', apiKey);
-  updateApiStatus();
-  closeModal();
-}
+function saveKey() { apiKey = document.getElementById('modalKeyInput').value.trim(); localStorage.setItem('deedApiKey', apiKey); updateApiStatus(); closeModal(); }
 function updateApiStatus() {
   document.getElementById('apiDot').classList.toggle('on', !!apiKey);
   document.getElementById('apiLabel').textContent = apiKey ? 'API Connected' : 'Set API Key';
 }
 
-// FILE HANDLING
 async function handleFile(file) {
-  pageImages = [];
+  pageImages = []; isPDF = false;
   setStatus('Loading file...', true);
   try {
-    if (file.type === 'application/pdf') {
-      await loadPDF(file);
-    } else if (file.type.startsWith('image/')) {
-      await loadImage(file);
-    } else {
-      setStatus('Unsupported file type.', false); return;
-    }
+    if (file.type === 'application/pdf') { isPDF = true; await loadPDF(file); }
+    else if (file.type.startsWith('image/')) { await loadImage(file); }
+    else { setStatus('Unsupported file type.', false); return; }
     showPreviews();
     document.getElementById('scanTitlebar').classList.add('visible');
     document.getElementById('previewArea').classList.add('visible');
+    // County mode note
+    const note = document.getElementById('countyModeNote');
+    const autoNote = document.getElementById('countyAutoNote');
+    if (isPDF) {
+      note.textContent = '(auto-detected from PDF)';
+      document.getElementById('scanCounty').disabled = false;
+      autoNote.classList.remove('visible');
+    } else {
+      note.textContent = '(required for screenshots)';
+      document.getElementById('scanCounty').disabled = false;
+      autoNote.classList.remove('visible');
+    }
     setStatus('', false);
     const name = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
     if (!document.getElementById('scanTitle').value) document.getElementById('scanTitle').value = name;
-  } catch(e) {
-    setStatus('Failed to load: ' + e.message, false);
-  }
+  } catch(e) { setStatus('Failed to load: ' + e.message, false); }
 }
 
 async function loadPDF(file) {
@@ -392,7 +437,6 @@ function showPreviews() {
   document.getElementById('pageInfo').textContent = pageImages.length > 1 ? pageImages.length + ' pages — all will be analyzed' : '1 page';
 }
 
-// EXTRACT
 function setStatus(msg, loading) {
   document.getElementById('statusMsg').textContent = msg;
   document.getElementById('loadingBar').classList.toggle('active', !!loading);
@@ -404,11 +448,18 @@ async function extractData() {
   document.getElementById('extractBtn').disabled = true;
   setStatus('Analyzing with AI...', true);
 
-  const prompt = `You are a real estate deed parser. Extract property data from this legal document image and return ONLY raw JSON with no markdown, no explanation, no code fences.
+  const pdfExtra = isPDF ? '\n- This is a full PDF — extract County from the document header/title area on the first page\n- For screenshots, County may not be visible' : '\n- This is a screenshot — County may not be visible, return "—" if not found';
 
-IMPORTANT: A screenshot may only show part of a document. Only extract what is actually visible. For any field not visible or not found, use exactly the string "—". Document Type only appears on the first page.
+  const prompt = `You are a real estate deed parser. Extract property data from this legal document and return ONLY raw JSON with no markdown, no explanation, no code fences.
 
-Return ONLY this exact JSON structure, no extra fields:
+RULES:
+- Only extract what is actually visible in the document
+- For any field not visible or not found, use exactly the string "—"
+- Document Type only appears on the first page
+- Recorded Date is in the filing stamp in the upper corner of the first page
+- Map # may also appear as Tax Map Number, Parcel ID, or TMS Number${pdfExtra}
+
+Return ONLY this exact JSON structure:
 {"Document Type":"","Tax Sale Auction Date":"","Recorded Date":"","Sale Price":"","Seller":"","Grantee":"","Grantee Address":"","Prior Owner(s)":"","Property Address":"","County":"","Map #":"","Legal Description":""}`;
 
   const content = pageImages.map(b64 => ({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: b64 } }));
@@ -425,30 +476,65 @@ Return ONLY this exact JSON structure, no extra fields:
     let text = data.content.map(c => c.text || '').join('').replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(text);
 
-    const county = document.getElementById('scanCounty').value;
-    if (county) parsed['County'] = county;
+    // County logic: PDF = auto-detect; screenshot = use dropdown
+    const manualCounty = document.getElementById('scanCounty').value;
+    if (isPDF && parsed['County'] && parsed['County'] !== '—') {
+      // Auto-detected — clean it up and match to SC county list
+      let detectedCounty = parsed['County'].replace(/county/i,'').replace(/,?\s*sc/i,'').trim();
+      const match = SC_COUNTIES.find(c => c.toLowerCase() === detectedCounty.toLowerCase());
+      if (match) {
+        parsed['County'] = match;
+        const sel = document.getElementById('scanCounty');
+        sel.value = match;
+        document.getElementById('countyAutoNote').classList.add('visible');
+      }
+    } else if (manualCounty) {
+      parsed['County'] = manualCounty;
+    }
 
-    // Ensure all required fields exist
+    // Ensure all required fields
     const requiredFields = ['Document Type','Tax Sale Auction Date','Recorded Date','Sale Price','Seller','Grantee','Grantee Address','Prior Owner(s)','Property Address','County','Map #','Legal Description'];
     requiredFields.forEach(f => { if (!parsed[f] || parsed[f] === 'null' || parsed[f] === null) parsed[f] = '—'; });
 
+    // Auto-build title: Grantee + Recorded Date
+    let autoTitle = '';
+    const grantee = parsed['Grantee'] !== '—' ? parsed['Grantee'] : '';
+    const recDate = parsed['Recorded Date'] !== '—' ? formatShortDate(parsed['Recorded Date']) : '';
+    if (grantee && recDate) autoTitle = grantee + ' — ' + recDate;
+    else if (grantee) autoTitle = grantee;
+    else if (recDate) autoTitle = recDate;
+
+    // Only overwrite title if user hasn't typed one or it still has the filename default
+    const titleEl = document.getElementById('scanTitle');
+    if (autoTitle) titleEl.value = autoTitle;
+
     currentData = parsed;
+    const finalCounty = parsed['County'] !== '—' ? parsed['County'] : '';
     const meta = {
-      title: document.getElementById('scanTitle').value || (parsed['Property Address'] !== '—' ? parsed['Property Address'] : 'Untitled Scan'),
-      county: county || (parsed['County'] !== '—' ? parsed['County'] : ''),
+      title: titleEl.value || parsed['Property Address'] || 'Untitled Scan',
+      county: finalCounty,
       notes: document.getElementById('scanNotes').value,
       date: new Date().toLocaleString()
     };
     renderResults(parsed, meta);
     saveToHistory(parsed, meta);
     setStatus('Extraction complete.', false);
-  } catch(e) {
-    setStatus('Error: ' + e.message, false);
-  }
+  } catch(e) { setStatus('Error: ' + e.message, false); }
   document.getElementById('extractBtn').disabled = false;
 }
 
-// RENDER
+function formatShortDate(str) {
+  if (!str || str === '—') return '';
+  const d = new Date(str);
+  if (isNaN(d)) {
+    // Try to extract a date from strings like "March 26, 2026 10:56:06 AM"
+    const m = str.match(/([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/);
+    if (m) return m[1].slice(0,3) + ' ' + m[2] + ', ' + m[3];
+    return str.split(' ')[0];
+  }
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function renderResults(data, meta) {
   const tb = document.getElementById('resultTitlebar');
   tb.classList.add('visible');
@@ -457,16 +543,13 @@ function renderResults(data, meta) {
   if (meta.county) { ce.textContent = meta.county + ' County, SC'; ce.style.display = 'block'; } else ce.style.display = 'none';
   const parts = [data['Document Type'] !== '—' ? data['Document Type'] : null, data['Sale Price'] !== '—' ? data['Sale Price'] : null, data['Tax Sale Auction Date'] !== '—' ? data['Tax Sale Auction Date'] : null, meta.date, meta.notes ? 'Note: ' + meta.notes : null].filter(Boolean);
   document.getElementById('rtbMeta').innerHTML = parts.map(p => `<span>${p}</span>`).join('');
-
   document.getElementById('emptyState').style.display = 'none';
   const grid = document.getElementById('resultsGrid');
   grid.classList.add('visible');
-
   const sections = {
     'Transaction': ['Document Type','Tax Sale Auction Date','Recorded Date','Sale Price','Seller','Grantee','Grantee Address','Prior Owner(s)'],
     'Property': ['Property Address','County','Map #','Legal Description']
   };
-
   let html = '';
   for (const [sec, keys] of Object.entries(sections)) {
     html += `<div class="result-card"><div class="result-section-title">${sec}</div>`;
@@ -481,11 +564,9 @@ function renderResults(data, meta) {
 function row(k, v) {
   const safe = String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const isEmpty = v === '—' || !v;
-  const valHtml = isEmpty
-    ? `<span class="result-val" style="color:var(--border);font-style:italic;font-weight:400;">not found in document</span>`
-    : `<span class="result-val">${safe}</span>`;
+  const valHtml = isEmpty ? `<span class="result-val" style="color:#ccc;font-style:italic;font-weight:400;">not found in document</span>` : `<span class="result-val">${safe}</span>`;
   const btnHtml = isEmpty ? '' : `<button class="copy-btn" onclick="copyField(this,'${safe}')">Copy</button>`;
-  return `<div class="result-row">${valHtml ? '' : ''}<span class="result-key">${k}</span>${valHtml}${btnHtml}</div>`;
+  return `<div class="result-row"><span class="result-key">${k}</span>${valHtml}${btnHtml}</div>`;
 }
 
 function copyField(btn, val) {
@@ -497,52 +578,120 @@ function copyField(btn, val) {
 
 function copyAll() {
   if (!currentData) return;
-  const text = Object.entries(currentData).filter(([,v]) => v && v !== 'null').map(([k,v]) => `${k}: ${v}`).join('\n');
+  const text = Object.entries(currentData).filter(([,v]) => v && v !== '—').map(([k,v]) => `${k}: ${v}`).join('\n');
   navigator.clipboard.writeText(text);
 }
 
-// HISTORY
 function saveToHistory(data, meta) {
   scanHistory.unshift({ id: Date.now(), meta, data });
   localStorage.setItem('deedHistory3', JSON.stringify(scanHistory));
-  renderHistory();
 }
 
-function renderHistory() {
-  const list = document.getElementById('historyList');
-  if (!scanHistory.length) { list.innerHTML = '<div style="font-size:11px;color:var(--muted)">No scans yet.</div>'; return; }
-  list.innerHTML = scanHistory.map(h => `
-    <div class="history-item" data-id="${h.id}" onclick="loadHistory(${h.id})">
-      <div class="hi-address">${h.meta.title || h.data['Property Address'] || 'Untitled'}</div>
-      <div class="hi-meta">${h.meta.county ? `<span class="hi-county">${h.meta.county} Co.</span>` : ''}<span>${h.meta.date}</span></div>
-    </div>`).join('');
-}
-
-function loadHistory(id) {
+function loadEntry(id) {
   const entry = scanHistory.find(h => h.id === id);
   if (!entry) return;
   currentData = entry.data;
   renderResults(entry.data, entry.meta);
-  document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
-  document.querySelector(`[data-id="${id}"]`).classList.add('active');
+  showPage2('scan');
+}
+
+function showPage2(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById(p + 'Page').classList.add('active');
+  document.querySelector(`.nav-tab[onclick="showPage('${p}')"]`).classList.add('active');
+}
+
+function deleteEntry(id) {
+  scanHistory = scanHistory.filter(h => h.id !== id);
+  localStorage.setItem('deedHistory3', JSON.stringify(scanHistory));
+  renderHistoryPage();
 }
 
 function clearHistory() {
   if (!confirm('Clear all scan history?')) return;
   scanHistory = [];
   localStorage.removeItem('deedHistory3');
-  renderHistory();
+  renderHistoryPage();
 }
 
-// EXPORT
+function setSortDir(dir) {
+  sortDir = dir;
+  document.getElementById('sortNewest').classList.toggle('active', dir === 'desc');
+  document.getElementById('sortOldest').classList.toggle('active', dir === 'asc');
+  renderHistoryPage();
+}
+
+function renderHistoryPage() {
+  const body = document.getElementById('histBody');
+  const search = (document.getElementById('histSearch').value || '').toLowerCase();
+  const countyFilter = document.getElementById('histCountyFilter').value;
+  const groupBy = document.getElementById('histGroupBy').value;
+
+  let items = [...scanHistory];
+
+  // Filter
+  if (countyFilter) items = items.filter(h => h.meta.county === countyFilter);
+  if (search) items = items.filter(h => {
+    const hay = [h.meta.title, h.meta.county, h.data['Grantee'], h.data['Property Address'], h.data['Seller'], h.data['Map #']].join(' ').toLowerCase();
+    return hay.includes(search);
+  });
+
+  // Sort
+  items.sort((a, b) => sortDir === 'desc' ? b.id - a.id : a.id - b.id);
+
+  document.getElementById('histCount').textContent = items.length + ' record' + (items.length !== 1 ? 's' : '');
+
+  if (!items.length) { body.innerHTML = '<div class="hist-empty">No records found.</div>'; return; }
+
+  const tableHeaders = `<tr>
+    <th>Grantee</th><th>Property Address</th><th>County</th>
+    <th>Sale Price</th><th>Auction Date</th><th>Recorded Date</th><th>Map #</th><th></th>
+  </tr>`;
+
+  function tableRows(list) {
+    return list.map(h => `<tr onclick="loadEntry(${h.id})" title="Click to view full record">
+      <td class="td-grantee">${h.data['Grantee'] !== '—' ? h.data['Grantee'] : '<span style="color:#ccc">—</span>'}</td>
+      <td class="td-addr">${h.data['Property Address'] !== '—' ? h.data['Property Address'] : '<span style="color:#ccc">—</span>'}</td>
+      <td class="td-county">${h.meta.county || '—'}</td>
+      <td class="td-price">${h.data['Sale Price'] !== '—' ? h.data['Sale Price'] : '—'}</td>
+      <td class="td-date">${h.data['Tax Sale Auction Date'] !== '—' ? h.data['Tax Sale Auction Date'] : '—'}</td>
+      <td class="td-date">${h.meta.date}</td>
+      <td>${h.data['Map #'] !== '—' ? h.data['Map #'] : '—'}</td>
+      <td><button class="hist-del" onclick="event.stopPropagation();deleteEntry(${h.id})" title="Delete">✕</button></td>
+    </tr>`).join('');
+  }
+
+  let html = '';
+
+  if (groupBy === 'county') {
+    const groups = {};
+    items.forEach(h => { const k = h.meta.county || 'Unknown County'; if (!groups[k]) groups[k] = []; groups[k].push(h); });
+    Object.keys(groups).sort().forEach(county => {
+      html += `<div class="hist-group-label">${county} County (${groups[county].length})</div>`;
+      html += `<table class="hist-table">${tableHeaders}<tbody>${tableRows(groups[county])}</tbody></table>`;
+    });
+  } else if (groupBy === 'date') {
+    const groups = {};
+    items.forEach(h => { const k = new Date(h.id).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); if (!groups[k]) groups[k] = []; groups[k].push(h); });
+    Object.keys(groups).forEach(date => {
+      html += `<div class="hist-group-label">${date}</div>`;
+      html += `<table class="hist-table">${tableHeaders}<tbody>${tableRows(groups[date])}</tbody></table>`;
+    });
+  } else {
+    html = `<table class="hist-table">${tableHeaders}<tbody>${tableRows(items)}</tbody></table>`;
+  }
+
+  body.innerHTML = html;
+}
+
 function exportCSV() {
   if (!scanHistory.length) return;
-  const metaFields = ['Scan Title','County','Notes','Scan Date'];
   const dataKeys = ['Document Type','Tax Sale Auction Date','Recorded Date','Sale Price','Seller','Grantee','Grantee Address','Prior Owner(s)','Property Address','County','Map #','Legal Description'];
-  const headers = [...metaFields, ...dataKeys];
-  const rows = [headers, ...scanHistory.map(h => [h.meta.title||'', h.meta.county||'', h.meta.notes||'', h.meta.date||'', ...dataKeys.map(k => (h.data[k] && h.data[k] !== '—') ? h.data[k] : '')])];
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'deedscan_export.csv'; a.click();
+  const headers = ['Scan Title','County','Notes','Scan Date',...dataKeys];
+  const rows = [headers,...scanHistory.map(h=>[h.meta.title||'',h.meta.county||'',h.meta.notes||'',h.meta.date||'',...dataKeys.map(k=>(h.data[k]&&h.data[k]!=='—')?h.data[k]:'')])];
+  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='deedscan_export.csv'; a.click();
 }
 </script>
 </body>
