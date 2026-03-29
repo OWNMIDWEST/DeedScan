@@ -227,6 +227,36 @@
   }
   .print-stamp{display:none;font-size:10px;color:#999;text-align:right;padding:8px 0 0;border-top:1px solid #eee;margin-top:12px;}
 
+  /* STATUS BADGES */
+  .status-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 9px;border-radius:10px;white-space:nowrap;user-select:none;}
+  .status-available{background:#dcfce7;color:#166534;border:1px solid #86efac;}
+  .status-sold{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+  .status-assigned{background:#e0f2fe;color:#075985;border:1px solid #7dd3fc;}
+  .status-retained{background:#fef9c3;color:#854d0e;border:1px solid #fde047;}
+  .status-noaction{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;}
+  .status-select{background:transparent;border:1px solid var(--border);border-radius:5px;padding:3px 7px;font-size:11px;font-family:'DM Sans',sans-serif;color:var(--text);cursor:pointer;transition:border-color 0.15s;}
+  .status-select:focus{outline:none;border-color:#1a3a5c;}
+
+  /* RECORD NOTES */
+  .record-notes-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:0;}
+  .record-notes-area{width:100%;min-height:64px;background:var(--surface2);border:none;padding:10px 13px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);resize:vertical;line-height:1.5;}
+  .record-notes-area:focus{outline:none;}
+  .record-notes-footer{padding:6px 13px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .record-notes-save{background:#1a3a5c;color:#fff;border:none;border-radius:5px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;}
+  .record-notes-save:hover{background:#2a5a8c;}
+  .record-notes-saved{font-size:10px;color:var(--success);}
+
+  /* MAP SEARCH */
+  .map-search-bar{display:flex;gap:6px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+  .map-search-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);transition:border-color 0.15s;}
+  .map-search-input:focus{outline:none;border-color:#1a3a5c;}
+  .map-search-btn{background:#1a3a5c;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all 0.15s;}
+  .map-search-btn:hover{background:#2a5a8c;}
+  .map-search-result{padding:8px 14px;font-size:12px;color:var(--muted);background:var(--surface);border-bottom:1px solid var(--border);display:none;}
+  .map-search-result.visible{display:block;}
+  .map-match{background:#ddeaf6;border-left:3px solid #1a3a5c;}
+  .map-match td{font-weight:500;}
+
   /* COUNTY SECTIONS */
   .county-section { margin-bottom: 20px; }
   .county-section-header { display: flex; align-items: center; gap: 8px; background: #1a3a5c; border-radius: 8px 8px 0 0; padding: 10px 14px; border: 1px solid #0d2a45; border-bottom: none; }
@@ -462,12 +492,24 @@
           </div>
         </div>
         <div class="rtb-meta" id="rtbMeta"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+          <span style="font-size:10px;color:#8ab4d4;user-select:none">Status:</span>
+          <select class="status-select" id="recordStatus" onchange="updateRecordStatus(this.value)" style="background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.3);">
+            <option value="No Action Yet">No Action Yet</option>
+            <option value="Available">Available</option>
+            <option value="Assigned">Assigned</option>
+            <option value="Retained">Retained</option>
+            <option value="Sold">Sold</option>
+          </select>
+          <span id="statusBadgeDisplay" class="status-badge status-noaction">No Action Yet</span>
+        </div>
       </div>
       <div class="results-grid" id="resultsGrid"></div>
       <div class="print-stamp" id="printStamp"></div>
     </div>
     <div class="action-bar">
       <button class="action-btn" id="copyAllBtn" onclick="copyAll()" disabled>Copy All</button>
+      <button class="action-btn" id="emailBtn" onclick="emailRecord()" disabled>Email Record</button>
       <button class="action-btn primary" id="printBtn" onclick="printRecord()" disabled>Print / Save PDF</button>
     </div>
   </div>
@@ -478,7 +520,15 @@
 <div class="page" id="historyPage">
   <div class="hist-toolbar">
     <span class="hist-toolbar-title">Scan History</span>
-    <input class="hist-filter hist-search" type="text" id="histSearch" placeholder="Search..." oninput="renderHistoryPage()">
+    <input class="hist-filter hist-search" type="text" id="histSearch" placeholder="Search grantee, address, map#..." oninput="renderHistoryPage()">
+    <select class="hist-filter" id="histStatusFilter" onchange="renderHistoryPage()">
+      <option value="">All Statuses</option>
+      <option value="No Action Yet">No Action Yet</option>
+      <option value="Available">Available</option>
+      <option value="Assigned">Assigned</option>
+      <option value="Retained">Retained</option>
+      <option value="Sold">Sold</option>
+    </select>
     <select class="hist-filter" id="histCountyFilter" onchange="renderHistoryPage()">
       <option value="">All Counties</option>
       <option>Abbeville</option><option>Aiken</option><option>Allendale</option><option>Anderson</option><option>Bamberg</option><option>Barnwell</option><option>Beaufort</option><option>Berkeley</option><option>Calhoun</option><option>Charleston</option><option>Cherokee</option><option>Chester</option><option>Chesterfield</option><option>Clarendon</option><option>Colleton</option><option>Darlington</option><option>Dillon</option><option>Dorchester</option><option>Edgefield</option><option>Fairfield</option><option>Florence</option><option>Georgetown</option><option>Greenville</option><option>Greenwood</option><option>Hampton</option><option>Horry</option><option>Jasper</option><option>Kershaw</option><option>Lancaster</option><option>Laurens</option><option>Lee</option><option>Lexington</option><option>Marion</option><option>Marlboro</option><option>McCormick</option><option>Newberry</option><option>Oconee</option><option>Orangeburg</option><option>Pickens</option><option>Richland</option><option>Saluda</option><option>Spartanburg</option><option>Sumter</option><option>Union</option><option>Williamsburg</option><option>York</option>
@@ -497,6 +547,11 @@
     <span class="hist-count" id="histCount"></span>
     <button class="clear-all-btn" style="margin-left:auto" onclick="confirmClearAll()">Clear All</button>
   </div>
+  <div class="map-search-bar">
+    <input class="map-search-input" type="text" id="mapSearchInput" placeholder="Search by Map # (hyphens/periods ignored)..." onkeydown="if(event.key==='Enter')searchByMap()">
+    <button class="map-search-btn" onclick="searchByMap()">Find Map #</button>
+  </div>
+  <div class="map-search-result" id="mapSearchResult"></div>
   <div class="dashboard-strip" id="dashStrip"></div>
   <div class="hist-body" id="histBody"></div>
 </div>
@@ -790,10 +845,27 @@ function renderResults(data,meta){
     keys.forEach(k=>{html+=row(k,data[k]||'—');});
     html+='</div>';
   }
+  // Notes card
+  html += `<div class="record-notes-card">
+    <div class="result-section-title">Notes</div>
+    <textarea class="record-notes-area" id="recordNotesArea" placeholder="Add your notes about this property...">${meta.recordNotes||''}</textarea>
+    <div class="record-notes-footer">
+      <span class="record-notes-saved" id="notesSavedMsg"></span>
+      <button class="record-notes-save" onclick="saveRecordNotes()">Save Notes</button>
+    </div>
+  </div>`;
   grid.innerHTML=html;
+
+  // Set status dropdown + badge
+  const statusVal = meta.status || 'No Action Yet';
+  const sel = document.getElementById('recordStatus');
+  if(sel) sel.value = statusVal;
+  updateStatusBadgeDisplay(statusVal);
+
   // print stamp
   document.getElementById('printStamp').textContent='Processed by Tax Deed Scan · '+new Date().toLocaleString();
   document.getElementById('copyAllBtn').disabled=false;
+  document.getElementById('emailBtn').disabled=false;
   document.getElementById('printBtn').disabled=false;
 }
 
@@ -852,6 +924,74 @@ function printRecord(){
   window.print();
 }
 
+function emailRecord(){
+  if(!currentData)return;
+  const entry=scanHistory.find(h=>JSON.stringify(h.data)===JSON.stringify(currentData));
+  const status=entry?entry.meta.status||'No Action Yet':'No Action Yet';
+  const notes=entry?entry.meta.recordNotes||'':'';
+  const fields=['Document Type','Tax Sale Auction Date','Recorded Date','Seller','Sale Price','Grantee','Grantee Address','Prior Owner(s)','Taxes Owed','Property Address','County','Map #','Legal Description'];
+  const body=fields.filter(k=>currentData[k]&&currentData[k]!=='—').map(k=>k+': '+currentData[k]).join('%0D%0A')
+    +'%0D%0A%0D%0AStatus: '+status
+    +(notes?'%0D%0ANotes: '+notes:'')
+    +'%0D%0A%0D%0A----%0D%0AProcessed by Tax Deed Scan · '+new Date().toLocaleString();
+  const subject='Tax Deed Record — '+(currentData['Property Address']!=='—'?currentData['Property Address']:currentData['Grantee']||'Property');
+  window.location.href='mailto:Joe@ownmidwest.com?subject='+encodeURIComponent(subject)+'&body='+body;
+}
+
+function statusClass(s){
+  const map={'Available':'status-available','Sold':'status-sold','Assigned':'status-assigned','Retained':'status-retained','No Action Yet':'status-noaction'};
+  return map[s]||'status-noaction';
+}
+
+function updateStatusBadgeDisplay(val){
+  const badge=document.getElementById('statusBadgeDisplay');
+  if(!badge)return;
+  badge.textContent=val;
+  badge.className='status-badge '+statusClass(val);
+}
+
+function updateRecordStatus(val){
+  updateStatusBadgeDisplay(val);
+  // Save to current history entry
+  if(!currentData)return;
+  const entry=scanHistory.find(h=>h.data===currentData||JSON.stringify(h.data)===JSON.stringify(currentData));
+  if(entry){entry.meta.status=val;localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));renderHistoryPage();}
+}
+
+function saveRecordNotes(){
+  const notes=document.getElementById('recordNotesArea').value;
+  if(!currentData)return;
+  const entry=scanHistory.find(h=>JSON.stringify(h.data)===JSON.stringify(currentData));
+  if(entry){
+    entry.meta.recordNotes=notes;
+    localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));
+    const msg=document.getElementById('notesSavedMsg');
+    msg.textContent='✓ Saved';
+    setTimeout(()=>{msg.textContent='';},2000);
+  }
+}
+
+function searchByMap(){
+  const raw=(document.getElementById('mapSearchInput').value||'').replace(/[-. ]/g,'').toLowerCase();
+  const resultEl=document.getElementById('mapSearchResult');
+  if(!raw){resultEl.classList.remove('visible');resultEl.textContent='';return;}
+  const match=scanHistory.find(h=>{
+    const m=(h.data['Map #']||'').replace(/[-. ]/g,'').toLowerCase();
+    return m===raw||m.includes(raw);
+  });
+  if(match){
+    resultEl.classList.add('visible');
+    resultEl.innerHTML=`Found: <strong>${match.meta.title||match.data['Property Address']||'Record'}</strong> — ${match.meta.county||''} · ${match.data['Map #']||''} · <a href="#" onclick="loadEntry(${match.id});return false;" style="color:#1a3a5c;font-weight:600">View Record ↗</a>`;
+    // highlight row
+    document.querySelectorAll('.hist-table tr').forEach(tr=>tr.classList.remove('map-match'));
+    const row=document.querySelector(`tr[data-id="${match.id}"]`);
+    if(row){row.classList.add('map-match');row.scrollIntoView({behavior:'smooth',block:'center'});}
+  } else {
+    resultEl.classList.add('visible');
+    resultEl.textContent='No record found for Map # "'+document.getElementById('mapSearchInput').value+'"';
+  }
+}
+
 function saveToHistory(data,meta,id){
   const entryId=id||Date.now();
   scanHistory.unshift({id:entryId,meta,data});
@@ -862,6 +1002,13 @@ function loadEntry(id){
   const entry=scanHistory.find(h=>h.id===id);if(!entry)return;
   currentData=entry.data;renderResults(entry.data,entry.meta);
   updateGISLink(entry.meta.county,entry.data['Map #']);
+  // Restore status
+  const sel=document.getElementById('recordStatus');
+  if(sel)sel.value=entry.meta.status||'No Action Yet';
+  updateStatusBadgeDisplay(entry.meta.status||'No Action Yet');
+  // Restore notes
+  const notesArea=document.getElementById('recordNotesArea');
+  if(notesArea)notesArea.value=entry.meta.recordNotes||'';
   showPage2('scan');
 }
 
@@ -937,7 +1084,9 @@ function renderHistoryPage(){
   const countyFilter=document.getElementById('histCountyFilter').value;
   const groupBy=document.getElementById('histGroupBy').value;
   let items=[...scanHistory];
+  const statusFilter=document.getElementById('histStatusFilter').value;
   if(countyFilter)items=items.filter(h=>h.meta.county===countyFilter);
+  if(statusFilter)items=items.filter(h=>(h.meta.status||'No Action Yet')===statusFilter);
   if(search)items=items.filter(h=>{const hay=[h.meta.title,h.meta.county,h.data['Grantee'],h.data['Property Address'],h.data['Seller'],h.data['Map #'],h.data['Taxes Owed']].join(' ').toLowerCase();return hay.includes(search);});
   items.sort((a,b)=>sortDir==='desc'?b.id-a.id:a.id-b.id);
   document.getElementById('histCount').textContent=items.length+' record'+(items.length!==1?'s':'');
@@ -962,7 +1111,7 @@ function renderHistoryPage(){
     const cls = isActive ? (colSortDir === 'asc' ? 'sort-asc' : 'sort-desc') : '';
     return `<th class="sortable ${cls}" onclick="sortByCol('${key}')">${label}</th>`;
   }
-  const th=`<tr><th>Grantee</th><th>Address</th><th>Map #</th>${thSort('Sale Price','Sale Price')}${thSort('Taxes Owed','Taxes Owed')}${thSort('Auction Date','Tax Sale Auction Date')}${thSort('Recorded','Recorded Date')}<th></th></tr>`;
+  const th=`<tr><th>Grantee</th><th>Address</th><th>Map #</th><th>Status</th>${thSort('Sale Price','Sale Price')}${thSort('Taxes Owed','Taxes Owed')}${thSort('Auction Date','Tax Sale Auction Date')}${thSort('Recorded','Recorded Date')}<th></th></tr>`;
 
   function sortedList(list) {
     if (!colSortKey) return list;
@@ -985,10 +1134,11 @@ function renderHistoryPage(){
     });
   }
 
-  const trows=list=>sortedList(list).map(h=>`<tr onclick="loadEntry(${h.id})" title="Click to view">
+  const trows=list=>sortedList(list).map(h=>`<tr data-id="${h.id}" onclick="loadEntry(${h.id})" title="Click to view">
     <td class="td-grantee">${h.data['Grantee']!=='—'?h.data['Grantee']:'<span style="color:#ccc">—</span>'}${h.meta.isDup?'<span class="dup-badge">dup</span>':''}</td>
     <td class="td-addr">${h.data['Property Address']!=='—'?h.data['Property Address']:'<span style="color:#ccc">—</span>'}</td>
     <td>${h.data['Map #']!=='—'?h.data['Map #']:'—'}</td>
+    <td><span class="status-badge ${statusClass(h.meta.status||'No Action Yet')}">${h.meta.status||'No Action Yet'}</span></td>
     <td class="td-price">${h.data['Sale Price']!=='—'?h.data['Sale Price']:'—'}</td>
     <td class="td-price" style="color:var(--danger)">${h.data['Taxes Owed']!=='—'?h.data['Taxes Owed']:'—'}</td>
     <td class="td-date">${h.data['Tax Sale Auction Date']!=='—'?h.data['Tax Sale Auction Date']:'—'}</td>
@@ -1039,8 +1189,8 @@ function renderHistoryPage(){
 function exportCSV(){
   if(!scanHistory.length)return;
   const dataKeys=['Document Type','Tax Sale Auction Date','Recorded Date','Seller','Sale Price','Grantee','Grantee Address','Prior Owner(s)','Taxes Owed','Property Address','County','Map #','Legal Description'];
-  const headers=['Scan Title','County','Notes','Scan Date','Duplicate',...dataKeys];
-  const rows=[headers,...scanHistory.map(h=>[h.meta.title||'',h.meta.county||'',h.meta.notes||'',h.meta.date||'',h.meta.isDup?'Yes':'No',...dataKeys.map(k=>(h.data[k]&&h.data[k]!=='—')?h.data[k]:'')])]
+  const headers=['Scan Title','County','Status','Notes','Record Notes','Scan Date','Duplicate',...dataKeys];
+  const rows=[headers,...scanHistory.map(h=>[h.meta.title||'',h.meta.county||'',h.meta.status||'No Action Yet',h.meta.notes||'',h.meta.recordNotes||'',h.meta.date||'',h.meta.isDup?'Yes':'No',...dataKeys.map(k=>(h.data[k]&&h.data[k]!=='—')?h.data[k]:'')])]
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='taxdeedscan_export.csv';a.click();
   // Mark export point and hide badge
