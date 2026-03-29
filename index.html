@@ -265,6 +265,15 @@
   .county-section .hist-table { border-radius: 0 0 8px 8px; border-top: none; }
   .county-section .hist-group-label { background: #2a5a8c; border-radius: 4px; margin: 6px 0 4px; }
 
+  /* BACKUP & RESTORE */
+  .backup-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fff8e1;border-bottom:1px solid #ffe082;flex-shrink:0;flex-wrap:wrap;}
+  .backup-bar-label{font-size:11px;color:#5d4037;font-weight:500;user-select:none;flex:1;}
+  .backup-btn{background:#1a3a5c;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all 0.15s;}
+  .backup-btn:hover{background:#2a5a8c;}
+  .backup-btn.restore{background:#2e7d52;}
+  .backup-btn.restore:hover{background:#1b5e3b;}
+  .backup-last{font-size:10px;color:#8d6e63;user-select:none;}
+
   /* EXPORT REMINDER */
   .export-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 200; }
   .export-popup-overlay.open { display: flex; }
@@ -547,6 +556,13 @@
     <span class="hist-count" id="histCount"></span>
     <button class="clear-all-btn" style="margin-left:auto" onclick="confirmClearAll()">Clear All</button>
   </div>
+  <div class="backup-bar">
+    <span class="backup-bar-label">💾 Data saved in this browser only — back up regularly to avoid losing records</span>
+    <span class="backup-last" id="lastBackupLabel"></span>
+    <button class="backup-btn" onclick="backupData()">Download Backup</button>
+    <button class="backup-btn restore" onclick="document.getElementById('restoreFileInput').click()">Restore Backup</button>
+    <input type="file" id="restoreFileInput" accept=".json" style="display:none" onchange="restoreData(this)">
+  </div>
   <div class="map-search-bar">
     <input class="map-search-input" type="text" id="mapSearchInput" placeholder="Search by Map # (hyphens/periods ignored)..." onkeydown="if(event.key==='Enter')searchByMap()">
     <button class="map-search-btn" onclick="searchByMap()">Find Map #</button>
@@ -595,7 +611,7 @@ const COUNTY_GIS = {
 };
 
 window.onload=()=>{
-  updateApiStatus(); updateLeftPanel(); renderHistoryPage(); initDBSettings(); checkExportReminder();
+  updateApiStatus(); updateLeftPanel(); renderHistoryPage(); initDBSettings(); checkExportReminder(); updateLastBackupLabel();
   const dz=document.getElementById('dropZone');
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
   dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
@@ -1184,6 +1200,82 @@ function renderHistoryPage(){
   });
 
   body.innerHTML=html;
+}
+
+// ── BACKUP & RESTORE ──
+function backupData(){
+  if(!scanHistory.length){alert('No data to back up yet.');return;}
+  const backup={
+    version:'1.0',
+    exportedAt:new Date().toISOString(),
+    recordCount:scanHistory.length,
+    history:scanHistory
+  };
+  const json=JSON.stringify(backup,null,2);
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));
+  const date=new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'}).replace(/\//g,'-');
+  a.download='taxdeedscan_backup_'+date+'.json';
+  a.click();
+  // Save last backup time
+  const now=new Date().toLocaleString();
+  localStorage.setItem('tds_lastBackup',now);
+  updateLastBackupLabel();
+  // Also reset export reminder
+  localStorage.setItem('tds_lastExportCount',scanHistory.length);
+  const badge=document.getElementById('exportRemindBadge');
+  if(badge)badge.style.display='none';
+}
+
+function restoreData(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const backup=JSON.parse(e.target.result);
+      if(!backup.history||!Array.isArray(backup.history)){
+        alert('Invalid backup file. Please use a file exported from Tax Deed Scan.');
+        return;
+      }
+      const incoming=backup.history;
+      const existingIds=new Set(scanHistory.map(h=>h.id));
+      const newRecords=incoming.filter(h=>!existingIds.has(h.id));
+      const duplicateCount=incoming.length-newRecords.length;
+
+      if(incoming.length===0){alert('Backup file contains no records.');return;}
+
+      let msg=`Found ${incoming.length} records in backup.
+`;
+      if(newRecords.length>0)msg+=`${newRecords.length} new records will be added.
+`;
+      if(duplicateCount>0)msg+=`${duplicateCount} already exist and will be skipped.
+`;
+      msg+=`
+Proceed?`;
+
+      if(!confirm(msg))return;
+
+      // Merge — add new records and re-sort by date
+      scanHistory=[...scanHistory,...newRecords];
+      scanHistory.sort((a,b)=>b.id-a.id);
+      localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));
+      updateLeftPanel();
+      renderHistoryPage();
+      checkExportReminder();
+      alert(`✓ Restore complete! ${newRecords.length} new records added.`);
+    }catch(err){
+      alert('Could not read backup file. Make sure it is a valid Tax Deed Scan backup.');
+    }
+  };
+  reader.readAsText(file);
+  input.value=''; // reset so same file can be re-selected
+}
+
+function updateLastBackupLabel(){
+  const last=localStorage.getItem('tds_lastBackup');
+  const el=document.getElementById('lastBackupLabel');
+  if(el)el.textContent=last?'Last backup: '+last:'No backup yet';
 }
 
 function exportCSV(){
