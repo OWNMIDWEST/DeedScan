@@ -231,6 +231,24 @@
   .county-section .hist-table { border-radius: 0 0 8px 8px; border-top: none; }
   .county-section .hist-group-label { background: #2a5a8c; border-radius: 4px; margin: 6px 0 4px; }
 
+  /* LOCK SCREEN */
+  .lock-overlay{position:fixed;inset:0;background:#1a3a5c;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:0;}
+  .lock-box{background:#fff;border-radius:16px;padding:36px 32px;text-align:center;width:300px;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+  .lock-logo{font-family:'DM Serif Display',serif;font-size:1.5rem;color:#1a3a5c;margin-bottom:4px;}
+  .lock-logo span{color:#2a5a8c;}
+  .lock-sub{font-size:11px;color:#4a6880;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:24px;}
+  .lock-label{font-size:12px;color:#4a6880;margin-bottom:10px;}
+  .lock-dots{display:flex;gap:12px;justify-content:center;margin-bottom:20px;}
+  .lock-dot{width:14px;height:14px;border-radius:50%;border:2px solid #c8d8e8;background:#f0f4f8;transition:all 0.15s;}
+  .lock-dot.filled{background:#1a3a5c;border-color:#1a3a5c;}
+  .lock-dot.error{background:#c0392b;border-color:#c0392b;}
+  .lock-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:0;}
+  .lock-key{background:#f0f4f8;border:1px solid #c8d8e8;border-radius:10px;padding:14px;font-size:18px;font-weight:600;color:#1a3a5c;cursor:pointer;transition:all 0.1s;font-family:'DM Sans',sans-serif;user-select:none;}
+  .lock-key:hover{background:#e0ebf5;border-color:#1a3a5c;}
+  .lock-key:active{transform:scale(0.94);background:#1a3a5c;color:#fff;}
+  .lock-key.wide{grid-column:span 2;}
+  .lock-error-msg{font-size:11px;color:#c0392b;margin-top:10px;min-height:16px;}
+
   /* MODAL */
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:100;}
   .modal-overlay.open{display:flex;}
@@ -907,6 +925,135 @@ function exportCSV(){
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='taxdeedscan_export.csv';a.click();
 }
+
+// ── ACCESS CODE (change '1234' to your preferred 4-digit code) ──
+const ACCESS_CODE = '1234';
+const MAX_ATTEMPTS = 3;
+const LOCKOUT_MS = 5 * 60 * 1000; // 5 minutes
+let lockEntry = '';
+let failedAttempts = 0;
+
+function isLockedOut() {
+  const lockUntil = parseInt(sessionStorage.getItem('tds_lockuntil') || '0');
+  return Date.now() < lockUntil;
+}
+
+function getRemainingLockout() {
+  const lockUntil = parseInt(sessionStorage.getItem('tds_lockuntil') || '0');
+  return Math.max(0, lockUntil - Date.now());
+}
+
+function lockPress(digit) {
+  if (isLockedOut()) return;
+  if (lockEntry.length >= 4) return;
+  lockEntry += digit;
+  updateLockDots();
+  if (lockEntry.length === 4) setTimeout(() => checkCode(), 150);
+}
+
+function lockClear() {
+  if (isLockedOut()) return;
+  lockEntry = '';
+  updateLockDots(false);
+  document.getElementById('lockError').textContent = '';
+}
+
+function updateLockDots(error) {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('ld' + i);
+    dot.classList.toggle('filled', i < lockEntry.length);
+    dot.classList.toggle('error', error === true);
+  }
+}
+
+function checkCode() {
+  if (lockEntry === ACCESS_CODE) {
+    sessionStorage.setItem('tds_unlocked', '1');
+    sessionStorage.removeItem('tds_lockuntil');
+    sessionStorage.removeItem('tds_attempts');
+    document.getElementById('lockOverlay').style.display = 'none';
+  } else {
+    failedAttempts++;
+    sessionStorage.setItem('tds_attempts', failedAttempts);
+    updateLockDots(true);
+    if (failedAttempts >= MAX_ATTEMPTS) {
+      const lockUntil = Date.now() + LOCKOUT_MS;
+      sessionStorage.setItem('tds_lockuntil', lockUntil);
+      showLockoutTimer();
+    } else {
+      const remaining = MAX_ATTEMPTS - failedAttempts;
+      document.getElementById('lockError').textContent = 'Incorrect code. ' + remaining + ' attempt' + (remaining !== 1 ? 's' : '') + ' remaining.';
+      setTimeout(() => { lockEntry = ''; updateLockDots(false); }, 1000);
+    }
+  }
+}
+
+function showLockoutTimer() {
+  const keys = document.querySelectorAll('.lock-key');
+  keys.forEach(k => k.disabled = true);
+  lockEntry = '';
+  updateLockDots(false);
+
+  const tick = () => {
+    const ms = getRemainingLockout();
+    if (ms <= 0) {
+      failedAttempts = 0;
+      sessionStorage.removeItem('tds_attempts');
+      sessionStorage.removeItem('tds_lockuntil');
+      keys.forEach(k => k.disabled = false);
+      document.getElementById('lockError').textContent = 'You may try again.';
+      setTimeout(() => { document.getElementById('lockError').textContent = ''; }, 2000);
+      return;
+    }
+    const mins = Math.floor(ms / 60000);
+    const secs = Math.floor((ms % 60000) / 1000);
+    document.getElementById('lockError').textContent = 'Too many attempts. Locked for ' + mins + ':' + String(secs).padStart(2,'0') + '.';
+    setTimeout(tick, 500);
+  };
+  tick();
+}
+
+// Check on load — session-based (clears when browser closes)
+(function() {
+  failedAttempts = parseInt(sessionStorage.getItem('tds_attempts') || '0');
+  if (sessionStorage.getItem('tds_unlocked') === '1') {
+    document.getElementById('lockOverlay').style.display = 'none';
+  } else {
+    document.getElementById('lockOverlay').style.display = 'flex';
+    if (isLockedOut()) showLockoutTimer();
+  }
+})();
+
 </script>
+<!-- LOCK SCREEN -->
+<div class="lock-overlay" id="lockOverlay">
+  <div class="lock-box">
+    <div class="lock-logo">Tax Deed <span>Scan</span></div>
+    <div class="lock-sub">SC Edition</div>
+    <div class="lock-label">Enter your 4-digit access code</div>
+    <div class="lock-dots">
+      <div class="lock-dot" id="ld0"></div>
+      <div class="lock-dot" id="ld1"></div>
+      <div class="lock-dot" id="ld2"></div>
+      <div class="lock-dot" id="ld3"></div>
+    </div>
+    <div class="lock-pad">
+      <button class="lock-key" onclick="lockPress('1')">1</button>
+      <button class="lock-key" onclick="lockPress('2')">2</button>
+      <button class="lock-key" onclick="lockPress('3')">3</button>
+      <button class="lock-key" onclick="lockPress('4')">4</button>
+      <button class="lock-key" onclick="lockPress('5')">5</button>
+      <button class="lock-key" onclick="lockPress('6')">6</button>
+      <button class="lock-key" onclick="lockPress('7')">7</button>
+      <button class="lock-key" onclick="lockPress('8')">8</button>
+      <button class="lock-key" onclick="lockPress('9')">9</button>
+      <button class="lock-key" onclick="lockClear()">⌫</button>
+      <button class="lock-key" onclick="lockPress('0')">0</button>
+      <button class="lock-key" onclick="lockClear()">C</button>
+    </div>
+    <div class="lock-error-msg" id="lockError"></div>
+  </div>
+</div>
+
 </body>
 </html>
