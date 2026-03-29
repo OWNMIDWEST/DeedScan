@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeedScan — SC Property Extractor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+
+  :root {
+    --bg: #0f0e0c;
+    --surface: #1a1916;
+    --surface2: #232220;
+    --border: #2e2c28;
+    --accent: #c9a84c;
+    --accent2: #e8c97a;
+    --text: #f0ece3;
+    --muted: #7a7669;
+    --success: #4caf7d;
+    --danger: #e05c5c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  header {
+    padding: 0 2rem; height: 56px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .logo { font-family: 'DM Serif Display', serif; font-size: 1.35rem; color: var(--accent); letter-spacing: 0.02em; }
+  .logo span { color: var(--text); }
+  .logo sub { font-family: 'DM Sans', sans-serif; font-size: 10px; color: var(--muted); letter-spacing: 0.08em; vertical-align: middle; margin-left: 6px; font-weight: 400; }
+
+  .api-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 20px;
+    padding: 4px 12px 4px 9px; font-size: 12px; color: var(--muted); cursor: pointer; transition: border-color 0.15s;
+  }
+  .api-pill:hover { border-color: var(--accent); }
+  .api-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); flex-shrink: 0; }
+  .api-dot.on { background: var(--success); }
+
+  main { flex: 1; display: grid; grid-template-columns: 320px 1fr; overflow: hidden; height: calc(100vh - 56px); }
+
+  /* LEFT */
+  .left-panel { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .panel-section { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; font-weight: 600; flex-shrink: 0; }
+
+  .drop-zone {
+    margin: 12px 14px 10px; border: 1.5px dashed var(--border); border-radius: 10px;
+    padding: 20px 14px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface); flex-shrink: 0;
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: rgba(201,168,76,0.04); }
+  .drop-icon { width: 38px; height: 38px; margin: 0 auto 8px; background: var(--surface2); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); }
+  .drop-icon svg { width: 18px; height: 18px; stroke: var(--accent); fill: none; stroke-width: 1.5; }
+  .drop-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .drop-sub { font-size: 11px; color: var(--muted); }
+  .drop-types { display: flex; gap: 5px; justify-content: center; margin-top: 8px; }
+  .type-badge { font-size: 10px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); padding: 2px 7px; border-radius: 4px; }
+  input[type="file"] { display: none; }
+
+  /* SCAN TITLE BAR */
+  .scan-titlebar { margin: 0 14px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; display: none; flex-shrink: 0; }
+  .scan-titlebar.visible { display: block; }
+  .stb-header { padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  .stb-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .stb-row { display: flex; flex-direction: column; gap: 3px; }
+  .stb-label { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .stb-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; color: var(--text); font-size: 12px; font-family: 'DM Sans', sans-serif; width: 100%; transition: border-color 0.15s; }
+  .stb-input:focus { outline: none; border-color: var(--accent); }
+  .stb-input option { background: #1a1916; }
+
+  /* PREVIEW */
+  .preview-area { margin: 0 14px 8px; display: none; flex-direction: column; gap: 7px; flex-shrink: 0; }
+  .preview-area.visible { display: flex; }
+  .page-info { font-size: 11px; color: var(--muted); }
+  .preview-scroll { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 3px; }
+  .preview-scroll::-webkit-scrollbar { height: 3px; }
+  .preview-scroll::-webkit-scrollbar-thumb { background: var(--border); }
+  .page-thumb { width: 62px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); flex-shrink: 0; cursor: pointer; transition: border-color 0.15s; }
+  .page-thumb:hover, .page-thumb.active { border-color: var(--accent); }
+  .extract-btn { width: 100%; padding: 10px; background: var(--accent); color: #0f0e0c; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .extract-btn:hover { background: var(--accent2); }
+  .extract-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .loading-bar { height: 2px; background: var(--surface2); margin: 0 14px 5px; border-radius: 2px; overflow: hidden; display: none; flex-shrink: 0; }
+  .loading-bar.active { display: block; }
+  .loading-bar-inner { height: 100%; width: 35%; background: var(--accent); border-radius: 2px; animation: sweep 1.4s ease-in-out infinite; }
+  @keyframes sweep { 0%{transform:translateX(-100%)} 100%{transform:translateX(380%)} }
+  .status-msg { font-size: 11px; color: var(--muted); padding: 0 14px 5px; min-height: 15px; flex-shrink: 0; }
+
+  /* HISTORY */
+  .history-wrap { flex: 1; overflow-y: auto; padding: 8px 14px 14px; }
+  .history-wrap::-webkit-scrollbar { width: 3px; }
+  .history-wrap::-webkit-scrollbar-thumb { background: var(--border); }
+  .history-head { font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; font-weight: 600; margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .clear-btn { font-size: 10px; color: var(--muted); background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; text-decoration: underline; }
+  .clear-btn:hover { color: var(--danger); }
+  .history-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px; margin-bottom: 6px; cursor: pointer; transition: border-color 0.15s; }
+  .history-item:hover, .history-item.active { border-color: var(--accent); }
+  .hi-address { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hi-meta { font-size: 10px; color: var(--muted); margin-top: 2px; display: flex; gap: 8px; }
+  .hi-county { color: var(--accent); }
+
+  /* RIGHT */
+  .right-panel { display: flex; flex-direction: column; overflow: hidden; }
+  .results-area { flex: 1; overflow-y: auto; padding: 16px; }
+  .results-area::-webkit-scrollbar { width: 3px; }
+  .results-area::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .empty-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); gap: 10px; text-align: center; }
+  .empty-state svg { width: 44px; height: 44px; stroke: var(--border); fill: none; stroke-width: 1; }
+  .empty-state p { font-size: 13px; line-height: 1.6; }
+
+  /* RESULT TITLE BAR */
+  .result-titlebar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; display: none; }
+  .result-titlebar.visible { display: block; }
+  .rtb-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+  .rtb-title { font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: var(--text); line-height: 1.3; }
+  .rtb-county { font-size: 11px; background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.25); color: var(--accent); padding: 3px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+  .rtb-meta { font-size: 11px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+  .rtb-meta span::before { content: '·'; margin-right: 12px; }
+  .rtb-meta span:first-child::before { content: ''; margin-right: 0; }
+
+  .results-grid { display: none; flex-direction: column; gap: 8px; }
+  .results-grid.visible { display: flex; }
+  .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .result-section-title { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); padding: 8px 13px 6px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  .result-row { display: grid; grid-template-columns: 155px 1fr auto; align-items: start; padding: 7px 13px; border-bottom: 1px solid var(--border); gap: 10px; transition: background 0.1s; }
+  .result-row:last-child { border-bottom: none; }
+  .result-row:hover { background: var(--surface2); }
+  .result-key { font-size: 11px; color: var(--muted); padding-top: 1px; }
+  .result-val { font-size: 12px; font-weight: 500; line-height: 1.5; word-break: break-word; }
+  .copy-btn { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 4px; padding: 2px 7px; font-size: 10px; cursor: pointer; white-space: nowrap; transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { border-color: var(--success); color: var(--success); }
+
+  .action-bar { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+  .action-btn { flex: 1; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.primary { background: var(--accent); color: #0f0e0c; border-color: var(--accent); font-weight: 600; }
+  .action-btn.primary:hover { background: var(--accent2); }
+  .action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; width: 340px; }
+  .modal h3 { font-family: 'DM Serif Display', serif; font-size: 1.1rem; margin-bottom: 6px; color: var(--accent); }
+  .modal p { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
+  .modal-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; margin-bottom: 12px; }
+  .modal-input:focus { outline: none; border-color: var(--accent); }
+  .modal-btns { display: flex; gap: 8px; }
+  .modal-btn { flex: 1; padding: 9px; border-radius: 7px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; border: 1px solid var(--border); background: var(--surface2); color: var(--text); transition: all 0.15s; }
+  .modal-btn.save { background: var(--accent); color: #0f0e0c; border-color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Deed<span>Scan</span><sub>SC EDITION</sub></div>
+  <div class="api-pill" onclick="openModal()">
+    <div class="api-dot" id="apiDot"></div>
+    <span id="apiLabel">Set API Key</span>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <div class="panel-section">Upload Document</div>
+
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="drop-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      </div>
+      <div class="drop-title">Drop document here</div>
+      <div class="drop-sub">click to browse · or press <kbd style="background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px;font-family:monospace;color:var(--accent)">Ctrl+V</kbd> to paste</div>
+      <div class="drop-types">
+        <span class="type-badge">PDF</span>
+        <span class="type-badge">PNG</span>
+        <span class="type-badge">JPG</span>
+        <span class="type-badge">WEBP</span>
+        <span class="type-badge">PASTE</span>
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*,.pdf" onchange="handleFile(this.files[0])">
+
+    <!-- SCAN TITLE BAR -->
+    <div class="scan-titlebar" id="scanTitlebar">
+      <div class="stb-header">
+        <span>Scan Details</span>
+        <span id="pageCount" style="color:var(--muted)"></span>
+      </div>
+      <div class="stb-body">
+        <div class="stb-row">
+          <div class="stb-label">Title / Reference</div>
+          <input class="stb-input" type="text" id="scanTitle" placeholder="e.g. 123 Main St — Quitclaim">
+        </div>
+        <div class="stb-row">
+          <div class="stb-label">County</div>
+          <select class="stb-input" id="scanCounty">
+            <option value="">— Select SC County —</option>
+            <option>Abbeville</option><option>Aiken</option><option>Allendale</option>
+            <option>Anderson</option><option>Bamberg</option><option>Barnwell</option>
+            <option>Beaufort</option><option>Berkeley</option><option>Calhoun</option>
+            <option>Charleston</option><option>Cherokee</option><option>Chester</option>
+            <option>Chesterfield</option><option>Clarendon</option><option>Colleton</option>
+            <option>Darlington</option><option>Dillon</option><option>Dorchester</option>
+            <option>Edgefield</option><option>Fairfield</option><option>Florence</option>
+            <option>Georgetown</option><option>Greenville</option><option>Greenwood</option>
+            <option>Hampton</option><option>Horry</option><option>Jasper</option>
+            <option>Kershaw</option><option>Lancaster</option><option>Laurens</option>
+            <option>Lee</option><option>Lexington</option><option>Marion</option>
+            <option>Marlboro</option><option>McCormick</option><option>Newberry</option>
+            <option>Oconee</option><option>Orangeburg</option><option>Pickens</option>
+            <option>Richland</option><option>Saluda</option><option>Spartanburg</option>
+            <option>Sumter</option><option>Union</option><option>Williamsburg</option>
+            <option>York</option>
+          </select>
+        </div>
+        <div class="stb-row">
+          <div class="stb-label">Notes</div>
+          <input class="stb-input" type="text" id="scanNotes" placeholder="Optional notes...">
+        </div>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="preview-area" id="previewArea">
+      <div class="page-info" id="pageInfo"></div>
+      <div class="preview-scroll" id="previewScroll"></div>
+      <button class="extract-btn" id="extractBtn" onclick="extractData()">Extract Property Data</button>
+    </div>
+
+    <div class="loading-bar" id="loadingBar"><div class="loading-bar-inner"></div></div>
+    <div class="status-msg" id="statusMsg"></div>
+
+    <div class="history-wrap">
+      <div class="history-head">
+        <span>Scan History</span>
+        <button class="clear-btn" onclick="clearHistory()">Clear all</button>
+      </div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="results-area">
+      <div class="empty-state" id="emptyState">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <p>Upload a deed screenshot or PDF<br>to extract property data automatically.</p>
+      </div>
+
+      <div class="result-titlebar" id="resultTitlebar">
+        <div class="rtb-top">
+          <div class="rtb-title" id="rtbTitle"></div>
+          <div class="rtb-county" id="rtbCounty" style="display:none"></div>
+        </div>
+        <div class="rtb-meta" id="rtbMeta"></div>
+      </div>
+
+      <div class="results-grid" id="resultsGrid"></div>
+    </div>
+
+    <div class="action-bar">
+      <button class="action-btn" id="copyAllBtn" onclick="copyAll()" disabled>Copy All Fields</button>
+      <button class="action-btn primary" id="exportBtn" onclick="exportCSV()" disabled>Export History to CSV</button>
+    </div>
+  </div>
+</main>
+
+<!-- API MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>Anthropic API Key</h3>
+    <p>Your key is saved locally in your browser only — never shared. Get a free key at <strong style="color:var(--accent)">console.anthropic.com</strong></p>
+    <input class="modal-input" type="password" id="modalKeyInput" placeholder="sk-ant-...">
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn save" onclick="saveKey()">Save Key</button>
+    </div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let currentData = null;
+let scanHistory = JSON.parse(localStorage.getItem('deedHistory3') || '[]');
+let apiKey = localStorage.getItem('deedApiKey') || '';
+let pageImages = [];
+
+window.onload = () => {
+  updateApiStatus();
+  renderHistory();
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+
+  document.addEventListener('paste', e => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const file = items[i].getAsFile();
+        if (file) { handleFile(file); break; }
+      }
+    }
+  });
+};
+
+// API KEY
+function openModal() { document.getElementById('modalKeyInput').value = apiKey; document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function saveKey() {
+  apiKey = document.getElementById('modalKeyInput').value.trim();
+  localStorage.setItem('deedApiKey', apiKey);
+  updateApiStatus();
+  closeModal();
+}
+function updateApiStatus() {
+  document.getElementById('apiDot').classList.toggle('on', !!apiKey);
+  document.getElementById('apiLabel').textContent = apiKey ? 'API Connected' : 'Set API Key';
+}
+
+// FILE HANDLING
+async function handleFile(file) {
+  pageImages = [];
+  setStatus('Loading file...', true);
+  try {
+    if (file.type === 'application/pdf') {
+      await loadPDF(file);
+    } else if (file.type.startsWith('image/')) {
+      await loadImage(file);
+    } else {
+      setStatus('Unsupported file type.', false); return;
+    }
+    showPreviews();
+    document.getElementById('scanTitlebar').classList.add('visible');
+    document.getElementById('previewArea').classList.add('visible');
+    setStatus('', false);
+    const name = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+    if (!document.getElementById('scanTitle').value) document.getElementById('scanTitle').value = name;
+  } catch(e) {
+    setStatus('Failed to load: ' + e.message, false);
+  }
+}
+
+async function loadPDF(file) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  document.getElementById('pageCount').textContent = pdf.numPages + (pdf.numPages > 1 ? ' pages' : ' page');
+  for (let i = 1; i <= pdf.numPages; i++) {
+    setStatus('Rendering page ' + i + ' of ' + pdf.numPages + '...', true);
+    const page = await pdf.getPage(i);
+    const vp = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    pageImages.push(canvas.toDataURL('image/png').split(',')[1]);
+  }
+}
+
+async function loadImage(file) {
+  document.getElementById('pageCount').textContent = '1 page';
+  const b64 = await new Promise(res => { const r = new FileReader(); r.onload = e => res(e.target.result.split(',')[1]); r.readAsDataURL(file); });
+  pageImages.push(b64);
+}
+
+function showPreviews() {
+  const scroll = document.getElementById('previewScroll');
+  scroll.innerHTML = '';
+  pageImages.forEach((b64, i) => {
+    const img = document.createElement('img');
+    img.src = 'data:image/png;base64,' + b64;
+    img.className = 'page-thumb' + (i === 0 ? ' active' : '');
+    img.onclick = () => { document.querySelectorAll('.page-thumb').forEach(t => t.classList.remove('active')); img.classList.add('active'); };
+    scroll.appendChild(img);
+  });
+  document.getElementById('pageInfo').textContent = pageImages.length > 1 ? pageImages.length + ' pages — all will be analyzed' : '1 page';
+}
+
+// EXTRACT
+function setStatus(msg, loading) {
+  document.getElementById('statusMsg').textContent = msg;
+  document.getElementById('loadingBar').classList.toggle('active', !!loading);
+}
+
+async function extractData() {
+  if (!pageImages.length) return;
+  if (!apiKey) { openModal(); return; }
+  document.getElementById('extractBtn').disabled = true;
+  setStatus('Analyzing with AI...', true);
+
+  const prompt = `You are a real estate deed parser. Extract property data from this legal document image and return ONLY raw JSON with no markdown, no explanation, no code fences.
+
+IMPORTANT: A screenshot may only show part of a document. Only extract what is actually visible. For any field not visible or not found, use exactly the string "—". Document Type only appears on the first page.
+
+Return ONLY this exact JSON structure, no extra fields:
+{"Document Type":"","Sale Date":"","Sale Price":"","Seller":"","Grantee":"","Grantee Address":"","Prior Owner(s)":"","Property Address":"","County":"","Legal Description":""}`;
+
+  const content = pageImages.map(b64 => ({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: b64 } }));
+  content.push({ type: 'text', text: prompt });
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    let text = data.content.map(c => c.text || '').join('').replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(text);
+
+    const county = document.getElementById('scanCounty').value;
+    if (county) parsed['County'] = county;
+
+    // Ensure all required fields exist
+    const requiredFields = ['Document Type','Sale Date','Sale Price','Seller','Grantee','Grantee Address','Prior Owner(s)','Property Address','County','Legal Description'];
+    requiredFields.forEach(f => { if (!parsed[f] || parsed[f] === 'null' || parsed[f] === null) parsed[f] = '—'; });
+
+    currentData = parsed;
+    const meta = {
+      title: document.getElementById('scanTitle').value || (parsed['Property Address'] !== '—' ? parsed['Property Address'] : 'Untitled Scan'),
+      county: county || (parsed['County'] !== '—' ? parsed['County'] : ''),
+      notes: document.getElementById('scanNotes').value,
+      date: new Date().toLocaleString()
+    };
+    renderResults(parsed, meta);
+    saveToHistory(parsed, meta);
+    setStatus('Extraction complete.', false);
+  } catch(e) {
+    setStatus('Error: ' + e.message, false);
+  }
+  document.getElementById('extractBtn').disabled = false;
+}
+
+// RENDER
+function renderResults(data, meta) {
+  const tb = document.getElementById('resultTitlebar');
+  tb.classList.add('visible');
+  document.getElementById('rtbTitle').textContent = meta.title;
+  const ce = document.getElementById('rtbCounty');
+  if (meta.county) { ce.textContent = meta.county + ' County, SC'; ce.style.display = 'block'; } else ce.style.display = 'none';
+  const parts = [data['Document Type'] !== '—' ? data['Document Type'] : null, data['Sale Price'] !== '—' ? data['Sale Price'] : null, meta.date, meta.notes ? 'Note: ' + meta.notes : null].filter(Boolean);
+  document.getElementById('rtbMeta').innerHTML = parts.map(p => `<span>${p}</span>`).join('');
+
+  document.getElementById('emptyState').style.display = 'none';
+  const grid = document.getElementById('resultsGrid');
+  grid.classList.add('visible');
+
+  const sections = {
+    'Transaction': ['Document Type','Sale Date','Sale Price','Seller','Grantee','Grantee Address','Prior Owner(s)'],
+    'Property': ['Property Address','County','Legal Description']
+  };
+
+  let html = '';
+  for (const [sec, keys] of Object.entries(sections)) {
+    html += `<div class="result-card"><div class="result-section-title">${sec}</div>`;
+    keys.forEach(k => { html += row(k, data[k] || '—'); });
+    html += '</div>';
+  }
+  grid.innerHTML = html;
+  document.getElementById('copyAllBtn').disabled = false;
+  document.getElementById('exportBtn').disabled = false;
+}
+
+function row(k, v) {
+  const safe = String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  const isEmpty = v === '—' || !v;
+  const valHtml = isEmpty
+    ? `<span class="result-val" style="color:var(--border);font-style:italic;font-weight:400;">not found in document</span>`
+    : `<span class="result-val">${safe}</span>`;
+  const btnHtml = isEmpty ? '' : `<button class="copy-btn" onclick="copyField(this,'${safe}')">Copy</button>`;
+  return `<div class="result-row">${valHtml ? '' : ''}<span class="result-key">${k}</span>${valHtml}${btnHtml}</div>`;
+}
+
+function copyField(btn, val) {
+  const text = val.replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+  navigator.clipboard.writeText(text);
+  btn.textContent = 'Copied!'; btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+}
+
+function copyAll() {
+  if (!currentData) return;
+  const text = Object.entries(currentData).filter(([,v]) => v && v !== 'null').map(([k,v]) => `${k}: ${v}`).join('\n');
+  navigator.clipboard.writeText(text);
+}
+
+// HISTORY
+function saveToHistory(data, meta) {
+  scanHistory.unshift({ id: Date.now(), meta, data });
+  localStorage.setItem('deedHistory3', JSON.stringify(scanHistory));
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (!scanHistory.length) { list.innerHTML = '<div style="font-size:11px;color:var(--muted)">No scans yet.</div>'; return; }
+  list.innerHTML = scanHistory.map(h => `
+    <div class="history-item" data-id="${h.id}" onclick="loadHistory(${h.id})">
+      <div class="hi-address">${h.meta.title || h.data['Property Address'] || 'Untitled'}</div>
+      <div class="hi-meta">${h.meta.county ? `<span class="hi-county">${h.meta.county} Co.</span>` : ''}<span>${h.meta.date}</span></div>
+    </div>`).join('');
+}
+
+function loadHistory(id) {
+  const entry = scanHistory.find(h => h.id === id);
+  if (!entry) return;
+  currentData = entry.data;
+  renderResults(entry.data, entry.meta);
+  document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`[data-id="${id}"]`).classList.add('active');
+}
+
+function clearHistory() {
+  if (!confirm('Clear all scan history?')) return;
+  scanHistory = [];
+  localStorage.removeItem('deedHistory3');
+  renderHistory();
+}
+
+// EXPORT
+function exportCSV() {
+  if (!scanHistory.length) return;
+  const metaFields = ['Scan Title','County','Notes','Scan Date'];
+  const dataKeys = ['Document Type','Sale Date','Sale Price','Seller','Grantee','Grantee Address','Prior Owner(s)','Property Address','County','Legal Description'];
+  const headers = [...metaFields, ...dataKeys];
+  const rows = [headers, ...scanHistory.map(h => [h.meta.title||'', h.meta.county||'', h.meta.notes||'', h.meta.date||'', ...dataKeys.map(k => (h.data[k] && h.data[k] !== '—') ? h.data[k] : '')])];
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'deedscan_export.csv'; a.click();
+}
+</script>
+</body>
+</html>
