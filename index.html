@@ -231,6 +231,22 @@
   .county-section .hist-table { border-radius: 0 0 8px 8px; border-top: none; }
   .county-section .hist-group-label { background: #2a5a8c; border-radius: 4px; margin: 6px 0 4px; }
 
+  /* EXPORT REMINDER */
+  .export-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 200; }
+  .export-popup-overlay.open { display: flex; }
+  .export-popup { background: #fff; border-radius: 14px; padding: 28px 24px; width: 300px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .export-popup-icon { font-size: 36px; margin-bottom: 10px; }
+  .export-popup h3 { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: #1a3a5c; margin-bottom: 8px; }
+  .export-popup p { font-size: 12px; color: #4a6880; line-height: 1.6; margin-bottom: 18px; }
+  .export-popup-btns { display: flex; gap: 8px; }
+  .export-popup-btn { flex: 1; padding: 9px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; border: 1px solid #c8d8e8; background: #f0f4f8; color: #1a3a5c; transition: all 0.15s; }
+  .export-popup-btn.primary { background: #1a3a5c; color: #fff; border-color: #1a3a5c; }
+  .export-popup-btn.primary:hover { background: #2a5a8c; }
+  .export-popup-btn:hover { border-color: #1a3a5c; }
+  .export-remind-wrap { position: relative; flex: 1; }
+  .export-remind-badge { position: absolute; top: -6px; right: -6px; background: #c0392b; color: #fff; font-size: 9px; font-weight: 700; border-radius: 10px; padding: 2px 6px; white-space: nowrap; animation: badgepulse 1.5s ease-in-out infinite; pointer-events: none; z-index: 10; }
+  @keyframes badgepulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.75;transform:scale(1.08)} }
+
   /* DB SYNC */
   .sync-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap;}
   .sync-badge.synced{background:#dcfce7;color:#166534;border:1px solid #86efac;}
@@ -449,7 +465,10 @@
     <div class="action-bar">
       <button class="action-btn" id="copyAllBtn" onclick="copyAll()" disabled>Copy All</button>
       <button class="action-btn" id="printBtn" onclick="printRecord()" disabled>Print / Save PDF</button>
-      <button class="action-btn primary" id="exportBtn" onclick="exportCSV()" disabled>Export CSV</button>
+      <div class="export-remind-wrap">
+        <button class="action-btn primary" id="exportBtn" onclick="exportCSV()" disabled>Export CSV</button>
+        <div class="export-remind-badge" id="exportRemindBadge" style="display:none">Back up!</div>
+      </div>
     </div>
   </div>
 </main>
@@ -515,7 +534,7 @@ const COUNTY_GIS = {
 };
 
 window.onload=()=>{
-  updateApiStatus(); updateLeftPanel(); renderHistoryPage(); initDBSettings();
+  updateApiStatus(); updateLeftPanel(); renderHistoryPage(); initDBSettings(); checkExportReminder();
   const dz=document.getElementById('dropZone');
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
   dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
@@ -726,6 +745,7 @@ async function extractData(){
     saveToHistory(parsed, meta, newId);
     updateLeftPanel();
     updateGISLink(finalCounty, parsed['Map #']);
+    checkExportReminder();
     // Show sync badge
     const sb = document.getElementById('recordSyncBadge');
     if (sb) sb.style.display = dbEndpoint ? 'inline-flex' : 'none';
@@ -975,6 +995,42 @@ function exportCSV(){
   const rows=[headers,...scanHistory.map(h=>[h.meta.title||'',h.meta.county||'',h.meta.notes||'',h.meta.date||'',h.meta.isDup?'Yes':'No',...dataKeys.map(k=>(h.data[k]&&h.data[k]!=='—')?h.data[k]:'')])]
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='taxdeedscan_export.csv';a.click();
+  // Mark export point and hide badge
+  localStorage.setItem('tds_lastExportCount', scanHistory.length);
+  const badge=document.getElementById('exportRemindBadge');
+  if(badge) badge.style.display='none';
+}
+
+// ── EXPORT REMINDER ──
+const REMIND_EVERY = 10;
+
+function checkExportReminder() {
+  const lastExport = parseInt(localStorage.getItem('tds_lastExportCount') || '0');
+  const total = scanHistory.length;
+  const unsaved = total - lastExport;
+  const badge = document.getElementById('exportRemindBadge');
+  if (!badge) return;
+  if (total > 0 && unsaved >= REMIND_EVERY) {
+    badge.style.display = 'block';
+    badge.textContent = unsaved + ' new — back up!';
+  } else {
+    badge.style.display = 'none';
+  }
+  // Popup at 20 unsaved scans
+  if (unsaved >= 20 && sessionStorage.getItem('tds_popupDismissed') !== '1') {
+    document.getElementById('exportPopupCount').textContent = unsaved;
+    document.getElementById('exportPopupOverlay').classList.add('open');
+  }
+}
+
+function dismissExportPopup() {
+  document.getElementById('exportPopupOverlay').classList.remove('open');
+  sessionStorage.setItem('tds_popupDismissed', '1');
+}
+
+function exportFromPopup() {
+  document.getElementById('exportPopupOverlay').classList.remove('open');
+  exportCSV();
 }
 
 // ── DATABASE SYNC ──
@@ -1172,6 +1228,19 @@ function showLockoutTimer() {
 })();
 
 </script>
+<!-- EXPORT POPUP -->
+<div class="export-popup-overlay" id="exportPopupOverlay">
+  <div class="export-popup">
+    <div class="export-popup-icon">💾</div>
+    <h3>Time to Back Up!</h3>
+    <p>You have <strong id="exportPopupCount">20</strong> unexported scans.<br>Export your data now to make sure nothing is lost if your browser cache is cleared.</p>
+    <div class="export-popup-btns">
+      <button class="export-popup-btn" onclick="dismissExportPopup()">Remind Later</button>
+      <button class="export-popup-btn primary" onclick="exportFromPopup()">Export Now</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOCK SCREEN -->
 <div class="lock-overlay" id="lockOverlay">
   <div class="lock-box">
