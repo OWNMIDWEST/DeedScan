@@ -20,10 +20,27 @@
   .logo sub{font-family:'DM Sans',sans-serif;font-size:10px;color:#8ab4d4;letter-spacing:0.08em;vertical-align:middle;margin-left:5px;font-weight:400;}
   .header-right{display:flex;align-items:center;gap:8px;}
   .nav-tabs{display:flex;gap:3px;}
-  .nav-tab{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:5px 12px;font-size:12px;color:#c8dff0;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;font-weight:500;}
+  .nav-tab{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:6px 24px;font-size:12px;color:#c8dff0;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;font-weight:500;min-width:90px;text-align:center;}
   .nav-tab:hover{background:rgba(255,255,255,0.2);}
   .nav-tab.active{background:#fff;color:#1a3a5c;border-color:#fff;}
   .api-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:20px;padding:4px 10px 4px 8px;font-size:11px;color:#c8dff0;cursor:pointer;transition:border-color 0.15s;}
+  .usage-meter{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:4px 10px;font-size:11px;color:#c8dff0;cursor:pointer;transition:border-color 0.15s;}
+  .usage-meter:hover{border-color:rgba(255,255,255,0.5);}
+  .usage-bar-wrap{width:60px;height:6px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden;}
+  .usage-bar-fill{height:100%;border-radius:3px;transition:width 0.4s,background 0.4s;}
+  .usage-meter-popup{position:fixed;top:64px;right:16px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;width:280px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:500;display:none;}
+  .usage-meter-popup.open{display:block;}
+  .ump-title{font-size:12px;font-weight:600;color:#1a3a5c;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+  .ump-close{background:none;border:none;font-size:16px;cursor:pointer;color:#4a6880;line-height:1;}
+  .ump-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
+  .ump-row:last-child{border-bottom:none;}
+  .ump-key{color:#4a6880;}
+  .ump-val{font-weight:600;color:#1a3a5c;}
+  .ump-bar-wrap{width:100%;height:8px;background:#e0ebf5;border-radius:4px;overflow:hidden;margin:8px 0 4px;}
+  .ump-bar-fill{height:100%;border-radius:4px;transition:width 0.4s,background 0.4s;}
+  .ump-note{font-size:10px;color:#4a6880;text-align:center;margin-top:8px;}
+  .ump-reset{width:100%;margin-top:10px;padding:7px;background:#f0f4f8;border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#1a3a5c;transition:all 0.15s;}
+  .ump-reset:hover{background:#e0ebf5;}
   .api-pill:hover{border-color:rgba(255,255,255,0.6);}
   .api-dot{width:6px;height:6px;border-radius:50%;background:var(--danger);flex-shrink:0;}
   .api-dot.on{background:var(--success);}
@@ -156,7 +173,7 @@
   .result-row:hover{background:#ddeaf6;}
   .result-key{font-size:11px;color:var(--muted);padding-top:1px;user-select:none;-webkit-user-select:none;}
   .result-val{font-size:12px;font-weight:500;line-height:1.5;word-break:break-word;user-select:text;-webkit-user-select:text;}
-  .copy-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;white-space:nowrap;transition:all 0.15s;font-family:'DM Sans',sans-serif;}
+  .copy-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;white-space:nowrap;transition:all 0.15s;font-family:'DM Sans',sans-serif;user-select:none;-webkit-user-select:none;}
   .copy-btn:hover{border-color:#1a3a5c;color:#1a3a5c;}
   .copy-btn.copied{border-color:var(--success);color:var(--success);}
   .edit-btn{color:#2a5a8c;border-color:#a8c4e0;}
@@ -347,6 +364,13 @@
 <header>
   <div class="logo">Tax Deed <span>Scan</span><sub>SC EDITION</sub></div>
   <div class="header-right">
+    <div class="usage-meter" onclick="toggleUsagePopup()" title="API Usage this session">
+      <span id="usageMeterLabel">0 scans</span>
+      <div class="usage-bar-wrap">
+        <div class="usage-bar-fill" id="usageBarFill" style="width:0%;background:#4caf7d;"></div>
+      </div>
+      <span id="usageCostLabel">~$0.00</span>
+    </div>
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="showPage('scan')">Scan</button>
       <button class="nav-tab" onclick="showPage('history')">History</button>
@@ -613,7 +637,7 @@ const COUNTY_GIS = {
 };
 
 window.onload=()=>{
-  updateApiStatus(); updateLeftPanel(); renderHistoryPage(); initDBSettings(); checkExportReminder(); updateLastBackupLabel();
+  updateApiStatus(); updateLeftPanel(); renderHistoryPage(); initDBSettings(); checkExportReminder(); updateLastBackupLabel(); initUsageMeter();
   const dz=document.getElementById('dropZone');
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
   dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
@@ -829,6 +853,7 @@ async function extractData(){
     const sb = document.getElementById('recordSyncBadge');
     if (sb) sb.style.display = dbEndpoint ? 'inline-flex' : 'none';
     syncToDB(parsed, meta, newId);
+    recordScanUsage();
     setStatus('Extraction complete.', false);
   }catch(e){setStatus('Error: '+e.message,false);}
   document.getElementById('extractBtn').disabled=false;
@@ -1152,7 +1177,7 @@ function renderHistoryPage(){
     });
   }
 
-  const trows=list=>sortedList(list).map(h=>`<tr data-id="${h.id}" onclick="loadEntry(${h.id})" title="Click to view">
+  const trows=list=>sortedList(list).map(h=>`<tr data-id="${h.id}" ondblclick="loadEntry(${h.id})" title="Double-click to open record" style="cursor:default;">
     <td class="td-grantee">${h.data['Grantee']!=='—'?h.data['Grantee']:'<span style="color:#ccc">—</span>'}${h.meta.isDup?'<span class="dup-badge">dup</span>':''}</td>
     <td class="td-addr">${h.data['Property Address']!=='—'?h.data['Property Address']:'<span style="color:#ccc">—</span>'}</td>
     <td>${h.data['Map #']!=='—'?h.data['Map #']:'—'}</td>
@@ -1421,6 +1446,67 @@ async function syncToDB(data, meta, entryId) {
   }
 }
 
+// ── USAGE METER ──
+const COST_PER_SCAN = 0.02;
+let sessionScans = 0;
+
+function initUsageMeter() {
+  updateUsageDisplay();
+}
+
+function recordScanUsage() {
+  sessionScans++;
+  const totalScans = parseInt(localStorage.getItem('tds_totalScans') || '0') + 1;
+  localStorage.setItem('tds_totalScans', totalScans);
+  updateUsageDisplay();
+}
+
+function updateUsageDisplay() {
+  const totalScans = parseInt(localStorage.getItem('tds_totalScans') || '0');
+  const sessionCost = sessionScans * COST_PER_SCAN;
+  const totalCost = totalScans * COST_PER_SCAN;
+  const budgetPct = Math.min((sessionCost / 1.00) * 100, 100);
+
+  // Header bar
+  document.getElementById('usageMeterLabel').textContent = sessionScans + (sessionScans === 1 ? ' scan' : ' scans');
+  document.getElementById('usageCostLabel').textContent = '~$' + sessionCost.toFixed(2);
+  const fill = document.getElementById('usageBarFill');
+  fill.style.width = Math.min(budgetPct, 100) + '%';
+  fill.style.background = budgetPct < 50 ? '#4caf7d' : budgetPct < 80 ? '#f59e0b' : '#c0392b';
+
+  // Popup
+  document.getElementById('umpSessionScans').textContent = sessionScans;
+  document.getElementById('umpTotalScans').textContent = totalScans;
+  document.getElementById('umpSessionCost').textContent = '$' + sessionCost.toFixed(2);
+  document.getElementById('umpTotalCost').textContent = '$' + totalCost.toFixed(2);
+  document.getElementById('umpAvgCost').textContent = '$' + COST_PER_SCAN.toFixed(2);
+  const barFill = document.getElementById('umpBarFill');
+  barFill.style.width = Math.min(budgetPct, 100) + '%';
+  barFill.style.background = budgetPct < 50 ? '#2e7d52' : budgetPct < 80 ? '#f59e0b' : '#c0392b';
+}
+
+function toggleUsagePopup() {
+  const popup = document.getElementById('usagePopup');
+  popup.classList.toggle('open');
+  if (popup.classList.contains('open')) updateUsageDisplay();
+}
+
+function resetUsageStats() {
+  if (!confirm('Reset all-time usage stats?')) return;
+  localStorage.removeItem('tds_totalScans');
+  updateUsageDisplay();
+}
+
+// Close popup when clicking outside
+document.addEventListener('click', e => {
+  const popup = document.getElementById('usagePopup');
+  if (popup && popup.classList.contains('open') &&
+      !popup.contains(e.target) &&
+      !e.target.closest('.usage-meter')) {
+    popup.classList.remove('open');
+  }
+});
+
 // ── ACCESS CODE (change '1234' to your preferred 4-digit code) ──
 const ACCESS_CODE = '1234';
 const MAX_ATTEMPTS = 3;
@@ -1544,6 +1630,25 @@ function showLockoutTimer() {
       <button class="export-popup-btn primary" onclick="exportFromPopup()">Export Now</button>
     </div>
   </div>
+</div>
+
+<!-- USAGE METER POPUP -->
+<div class="usage-meter-popup" id="usagePopup">
+  <div class="ump-title">
+    <span>API Usage Tracker</span>
+    <button class="ump-close" onclick="toggleUsagePopup()">✕</button>
+  </div>
+  <div class="ump-row"><span class="ump-key">Scans this session</span><span class="ump-val" id="umpSessionScans">0</span></div>
+  <div class="ump-row"><span class="ump-key">Scans all time</span><span class="ump-val" id="umpTotalScans">0</span></div>
+  <div class="ump-row"><span class="ump-key">Est. cost this session</span><span class="ump-val" id="umpSessionCost">$0.00</span></div>
+  <div class="ump-row"><span class="ump-key">Est. cost all time</span><span class="ump-val" id="umpTotalCost">$0.00</span></div>
+  <div class="ump-row"><span class="ump-key">Avg. cost per scan</span><span class="ump-val" id="umpAvgCost">$0.02</span></div>
+  <div style="margin-top:10px;">
+    <div style="font-size:10px;color:#4a6880;margin-bottom:4px;">Session budget usage (est. $1.00 session limit)</div>
+    <div class="ump-bar-wrap"><div class="ump-bar-fill" id="umpBarFill" style="width:0%;background:#2e7d52;"></div></div>
+  </div>
+  <div class="ump-note">Estimates based on ~$0.02 per scan (varies by document size)</div>
+  <button class="ump-reset" onclick="resetUsageStats()">Reset All-Time Stats</button>
 </div>
 
 <!-- LOCK SCREEN -->
