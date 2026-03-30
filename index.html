@@ -397,7 +397,7 @@
     <input type="file" id="fileInput" accept="image/*,.pdf" multiple onchange="handleFiles(this.files)">
 
     <div class="batch-queue" id="batchQueue">
-      <div class="bq-header"><span>Batch Queue</span><span id="bqProgress"></span></div>
+      <div class="bq-header"><span>Batch Queue</span><div style="display:flex;align-items:center;gap:8px;"><span id="bqProgress"></span><button onclick="clearBatchQueue()" style="background:none;border:none;font-size:10px;color:#c0392b;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;padding:0;text-decoration:underline;">Clear</button></div></div>
       <div class="bq-list" id="bqList"></div>
     </div>
     <button class="batch-extract-btn" id="batchExtractBtn" onclick="extractBatch()">Extract All Documents</button>
@@ -734,6 +734,20 @@ function showPreviews(){
 }
 
 // ── BATCH EXTRACT ──
+function clearBatchQueue(){
+  batchFiles=[];
+  batchResults=[];
+  document.getElementById('batchQueue').classList.remove('visible');
+  document.getElementById('batchExtractBtn').classList.remove('visible');
+  document.getElementById('scanTitlebar').classList.remove('visible');
+  document.getElementById('previewArea').classList.remove('visible');
+  pageImages=[];
+  setStatus('',false);
+  document.getElementById('scanTitle').value='';
+  document.getElementById('scanCounty').value='';
+  document.getElementById('scanNotes').value='';
+}
+
 function renderBatchQueue(){
   document.getElementById('bqList').innerHTML=batchResults.map((r,i)=>`
     <div class="bq-item">
@@ -1211,6 +1225,7 @@ function renderHistoryPage(){
         <span class="county-section-name">${county} County</span>
         <span class="county-section-count">${group.length} record${group.length!==1?'s':''}</span>
         ${countySubtotal(group)}
+        <button class="county-export-btn" onclick="event.stopPropagation();exportCountyCSV('${county.replace(/'/g,"\'")}')" title="Export ${county} County records">Export ↓</button>
       </div>`;
 
     if(groupBy==='date'){
@@ -1303,6 +1318,19 @@ function updateLastBackupLabel(){
   const last=localStorage.getItem('tds_lastBackup');
   const el=document.getElementById('lastBackupLabel');
   if(el)el.textContent=last?'Last backup: '+last:'No backup yet';
+}
+
+function exportCountyCSV(county){
+  const records = scanHistory.filter(h => h.meta.county === county);
+  if(!records.length){alert('No records found for '+county+' County.');return;}
+  const dataKeys=['Document Type','Tax Sale Auction Date','Recorded Date','Seller','Sale Price','Grantee','Grantee Address','Prior Owner(s)','Taxes Owed','Property Address','County','Map #','Legal Description'];
+  const headers=['Scan Title','County','Status','Notes','Record Notes','Scan Date','Duplicate',...dataKeys];
+  const rows=[headers,...records.map(h=>[h.meta.title||'',h.meta.county||'',h.meta.status||'No Action Yet',h.meta.notes||'',h.meta.recordNotes||'',h.meta.date||'',h.meta.isDup?'Yes':'No',...dataKeys.map(k=>(h.data[k]&&h.data[k]!=='—')?h.data[k]:'')])];
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='taxdeedscan_'+county.toLowerCase().replace(/ /g,'_')+'_county.csv';
+  a.click();
 }
 
 function exportCSV(){
