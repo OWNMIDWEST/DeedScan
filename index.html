@@ -1703,19 +1703,21 @@ function showLockoutTimer() {
   tick();
 }
 
-// Attach lock pad events via delegation
-document.addEventListener('DOMContentLoaded', function() {
+// Attach lock pad events - called after DOM ready
+function initLockPad() {
   const pad = document.getElementById('lockPad');
-  if (pad) {
-    pad.addEventListener('click', function(e) {
-      const btn = e.target.closest('[data-digit]');
-      if (!btn) return;
+  if (!pad) return;
+  const buttons = pad.querySelectorAll('[data-digit]');
+  buttons.forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
       const digit = btn.getAttribute('data-digit');
       if (digit === 'clear') lockClear();
       else lockPress(digit);
     });
-  }
-});
+  });
+}
 
 // Check on load — session-based (clears when browser closes)
 (function() {
@@ -1726,6 +1728,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('lockOverlay').style.display = 'flex';
     if (isLockedOut()) showLockoutTimer();
   }
+  initLockPad();
 })();
 
 </script>
