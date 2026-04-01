@@ -595,8 +595,10 @@
     <span class="backup-bar-label">💾 Data saved in this browser only — back up regularly to avoid losing records</span>
     <span class="backup-last" id="lastBackupLabel"></span>
     <button class="backup-btn" onclick="backupData()">Download Backup</button>
-    <button class="backup-btn restore" onclick="document.getElementById('restoreFileInput').click()">Restore Backup</button>
-    <input type="file" id="restoreFileInput" accept=".json" style="display:none" onchange="restoreData(this)">
+    <label class="backup-btn restore" style="cursor:pointer;display:inline-flex;align-items:center;">
+      Restore Backup
+      <input type="file" id="restoreFileInput" accept=".json" style="display:none;">
+    </label>
   </div>
   <div class="map-search-bar">
     <input class="map-search-input" type="text" id="mapSearchInput" placeholder="Search by Map # (hyphens/periods ignored)..." onkeydown="if(event.key==='Enter')searchByMap()">
@@ -656,7 +658,7 @@ const COUNTY_GIS = {
 };
 
 window.onload=()=>{
-  updateApiStatus(); updateLeftPanel(); renderHistoryPage(); initDBSettings(); checkExportReminder(); updateLastBackupLabel(); initUsageMeter();
+  updateApiStatus(); updateLeftPanel(); renderHistoryPage(); initDBSettings(); checkExportReminder(); updateLastBackupLabel(); initUsageMeter(); initRestoreInput();
   const dz=document.getElementById('dropZone');
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
   dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
@@ -1338,7 +1340,7 @@ function restoreData(input){
   const file=input.files[0];
   if(!file)return;
   const reader=new FileReader();
-  reader.onload=e=>{
+  reader.onload=function(e){
     try{
       const backup=JSON.parse(e.target.result);
       if(!backup.history||!Array.isArray(backup.history)){
@@ -1346,37 +1348,33 @@ function restoreData(input){
         return;
       }
       const incoming=backup.history;
-      const existingIds=new Set(scanHistory.map(h=>h.id));
-      const newRecords=incoming.filter(h=>!existingIds.has(h.id));
+      const existingIds=new Set(scanHistory.map(function(h){return h.id;}));
+      const newRecords=incoming.filter(function(h){return !existingIds.has(h.id);});
       const duplicateCount=incoming.length-newRecords.length;
-
       if(incoming.length===0){alert('Backup file contains no records.');return;}
-
-      let msg=`Found ${incoming.length} records in backup.
-`;
-      if(newRecords.length>0)msg+=`${newRecords.length} new records will be added.
-`;
-      if(duplicateCount>0)msg+=`${duplicateCount} already exist and will be skipped.
-`;
-      msg+=`
-Proceed?`;
-
+      let msg='Found '+incoming.length+' records in backup.\n';
+      if(newRecords.length>0)msg+=newRecords.length+' new records will be added.\n';
+      if(duplicateCount>0)msg+=duplicateCount+' already exist and will be skipped.\n';
+      msg+='\nProceed?';
       if(!confirm(msg))return;
-
-      // Merge — add new records and re-sort by date
-      scanHistory=[...scanHistory,...newRecords];
-      scanHistory.sort((a,b)=>b.id-a.id);
+      scanHistory=scanHistory.concat(newRecords);
+      scanHistory.sort(function(a,b){return b.id-a.id;});
       localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));
       updateLeftPanel();
       renderHistoryPage();
       checkExportReminder();
-      alert(`✓ Restore complete! ${newRecords.length} new records added.`);
+      alert('Restore complete! '+newRecords.length+' records added.');
     }catch(err){
-      alert('Could not read backup file. Make sure it is a valid Tax Deed Scan backup.');
+      alert('Could not read file: '+err.message);
     }
   };
   reader.readAsText(file);
-  input.value=''; // reset so same file can be re-selected
+}
+
+function initRestoreInput(){
+  const input=document.getElementById('restoreFileInput');
+  if(!input)return;
+  input.addEventListener('change',function(){restoreData(this);this.value='';});
 }
 
 function updateLastBackupLabel(){
