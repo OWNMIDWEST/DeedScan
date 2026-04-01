@@ -1703,6 +1703,20 @@ function showLockoutTimer() {
   tick();
 }
 
+// Attach lock pad events via delegation
+document.addEventListener('DOMContentLoaded', function() {
+  const pad = document.getElementById('lockPad');
+  if (pad) {
+    pad.addEventListener('click', function(e) {
+      const btn = e.target.closest('[data-digit]');
+      if (!btn) return;
+      const digit = btn.getAttribute('data-digit');
+      if (digit === 'clear') lockClear();
+      else lockPress(digit);
+    });
+  }
+});
+
 // Check on load — session-based (clears when browser closes)
 (function() {
   failedAttempts = parseInt(sessionStorage.getItem('tds_attempts') || '0');
@@ -1726,6 +1740,69 @@ function showLockoutTimer() {
       <button class="export-popup-btn" style="background:#c0392b;color:#fff;border-color:#c0392b" onclick="clearHistory()">Yes, Delete All</button>
     </div>
   </div>
+</div>
+
+<!-- EXPORT POPUP -->
+<div class="export-popup-overlay" id="exportPopupOverlay">
+  <div class="export-popup">
+    <div class="export-popup-icon">💾</div>
+    <h3>Time to Back Up!</h3>
+    <p>You have <strong id="exportPopupCount">20</strong> unexported scans.<br>Export your data now to make sure nothing is lost if your browser cache is cleared.</p>
+    <div class="export-popup-btns">
+      <button class="export-popup-btn" onclick="dismissExportPopup()">Remind Later</button>
+      <button class="export-popup-btn primary" onclick="exportFromPopup()">Export Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- USAGE METER POPUP -->
+<div class="usage-meter-popup" id="usagePopup">
+  <div class="ump-title">
+    <span>API Usage Tracker</span>
+    <button class="ump-close" onclick="toggleUsagePopup()">✕</button>
+  </div>
+  <div class="ump-row"><span class="ump-key">Scans this session</span><span class="ump-val" id="umpSessionScans">0</span></div>
+  <div class="ump-row"><span class="ump-key">Scans all time</span><span class="ump-val" id="umpTotalScans">0</span></div>
+  <div class="ump-row"><span class="ump-key">Est. cost this session</span><span class="ump-val" id="umpSessionCost">$0.00</span></div>
+  <div class="ump-row"><span class="ump-key">Est. cost all time</span><span class="ump-val" id="umpTotalCost">$0.00</span></div>
+  <div class="ump-row"><span class="ump-key">Avg. cost per scan</span><span class="ump-val" id="umpAvgCost">$0.02</span></div>
+  <div style="margin-top:10px;">
+    <div style="font-size:10px;color:#4a6880;margin-bottom:4px;">Session budget usage (est. $1.00 session limit)</div>
+    <div class="ump-bar-wrap"><div class="ump-bar-fill" id="umpBarFill" style="width:0%;background:#2e7d52;"></div></div>
+  </div>
+  <div class="ump-note">Estimates based on ~$0.02 per scan (varies by document size)</div>
+  <button class="ump-reset" onclick="resetUsageStats()">Reset All-Time Stats</button>
+</div>
+
+<!-- LOCK SCREEN -->
+<div class="lock-overlay" id="lockOverlay">
+  <div class="lock-box">
+    <div class="lock-logo">Tax Deed <span>Scan</span></div>
+    <div class="lock-sub">SC Edition</div>
+    <div class="lock-label">Enter your 4-digit access code</div>
+    <div class="lock-dots">
+      <div class="lock-dot" id="ld0"></div>
+      <div class="lock-dot" id="ld1"></div>
+      <div class="lock-dot" id="ld2"></div>
+      <div class="lock-dot" id="ld3"></div>
+    </div>
+    <div class="lock-pad" id="lockPad">
+      <button class="lock-key" data-digit="1">1</button>
+      <button class="lock-key" data-digit="2">2</button>
+      <button class="lock-key" data-digit="3">3</button>
+      <button class="lock-key" data-digit="4">4</button>
+      <button class="lock-key" data-digit="5">5</button>
+      <button class="lock-key" data-digit="6">6</button>
+      <button class="lock-key" data-digit="7">7</button>
+      <button class="lock-key" data-digit="8">8</button>
+      <button class="lock-key" data-digit="9">9</button>
+      <button class="lock-key" data-digit="clear">&#9003;</button>
+      <button class="lock-key" data-digit="0">0</button>
+      <button class="lock-key" data-digit="clear">C</button>
+    </div>
+    <div class="lock-error-msg" id="lockError"></div>
+  </div>
+</div>
 </div>
 
 <!-- EXPORT POPUP -->
