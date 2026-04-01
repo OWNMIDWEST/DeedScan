@@ -276,6 +276,18 @@
   .map-match{background:#ddeaf6;border-left:3px solid #1a3a5c;}
   .map-match td{font-weight:500;}
 
+  /* YEAR TABS */
+  .year-tabs{display:flex;gap:3px;margin-left:6px;}
+  .year-tab{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.7);border-radius:4px;padding:2px 9px;font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;user-select:none;}
+  .year-tab:hover{background:rgba(255,255,255,0.22);}
+  .year-tab.active{background:#fff;color:#1a3a5c;border-color:#fff;}
+
+  /* COUNTY NAV STRIP */
+  .county-nav-strip{display:none;align-items:center;gap:6px;padding:8px 18px;background:#e0ebf5;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;}
+  .county-nav-label{font-size:10px;font-weight:600;color:#1a3a5c;letter-spacing:0.08em;text-transform:uppercase;user-select:none;white-space:nowrap;}
+  .county-nav-btn{background:#fff;border:1px solid #c8d8e8;color:#1a3a5c;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;white-space:nowrap;}
+  .county-nav-btn:hover{background:#1a3a5c;color:#fff;border-color:#1a3a5c;}
+
   /* COUNTY SECTIONS */
   .county-section { margin-bottom: 20px; }
   .county-section-header { display: flex; align-items: center; gap: 8px; background: #1a3a5c; border-radius: 8px 8px 0 0; padding: 10px 14px; border: 1px solid #0d2a45; border-bottom: none; }
@@ -283,6 +295,19 @@
   .county-section-count { font-size: 11px; background: rgba(255,255,255,0.15); color: #c8dff0; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
   .county-section .hist-table { border-radius: 0 0 8px 8px; border-top: none; }
   .county-section .hist-group-label { background: #2a5a8c; border-radius: 4px; margin: 6px 0 4px; }
+  .county-export-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:5px;padding:3px 10px;font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all 0.15s;}
+  .county-export-btn:hover{background:rgba(255,255,255,0.3);}
+  .year-tabs{display:flex;gap:3px;margin-left:6px;}
+  .year-tab{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:#c8dff0;border-radius:4px;padding:2px 9px;font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;user-select:none;}
+  .year-tab:hover{background:rgba(255,255,255,0.25);}
+  .year-tab.active{background:#fff;color:#1a3a5c;border-color:#fff;}
+  .county-nav-strip{display:flex;gap:6px;padding:8px 18px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;align-items:center;}
+  .county-nav-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;user-select:none;white-space:nowrap;}
+  .county-nav-btn{background:#f0f4f8;border:1px solid var(--border);color:#1a3a5c;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all 0.15s;}
+  .county-nav-btn:hover{background:#1a3a5c;color:#fff;border-color:#1a3a5c;}
+  .status-inline-select{background:transparent;border:1px solid transparent;border-radius:4px;padding:2px 4px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.15s;width:100%;}
+  .status-inline-select:hover{border-color:#c8d8e8;background:#f0f4f8;}
+  .status-inline-select:focus{outline:none;border-color:#1a3a5c;}
 
   /* BACKUP & RESTORE */
   .backup-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fff8e1;border-bottom:1px solid #ffe082;flex-shrink:0;flex-wrap:wrap;}
@@ -595,6 +620,14 @@
   </div>
   <div class="map-search-result" id="mapSearchResult"></div>
   <div class="dashboard-strip" id="dashStrip"></div>
+  <div class="county-nav-strip" id="countyNavStrip" style="display:none">
+    <span class="county-nav-label">Jump to:</span>
+    <div id="countyNavBtns" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+  </div>
+  <div class="county-nav-strip" id="countyNavStrip">
+    <span class="county-nav-label">Jump to:</span>
+    <div id="countyNavBtns" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+  </div>
   <div class="hist-body" id="histBody"></div>
 </div>
 
@@ -617,6 +650,8 @@ let currentData=null, scanHistory=JSON.parse(localStorage.getItem('deedHistory3'
 let apiKey=localStorage.getItem('deedApiKey')||'', pageImages=[], isPDF=false, sortDir='desc';
 let batchFiles=[], batchResults=[];
 let colSortKey=null, colSortDir='asc';
+let countyYearState={};
+let countyYearState={}; // tracks active year tab per county
 
 const SC_COUNTIES=['Abbeville','Aiken','Allendale','Anderson','Bamberg','Barnwell','Beaufort','Berkeley','Calhoun','Charleston','Cherokee','Chester','Chesterfield','Clarendon','Colleton','Darlington','Dillon','Dorchester','Edgefield','Fairfield','Florence','Georgetown','Greenville','Greenwood','Hampton','Horry','Jasper','Kershaw','Lancaster','Laurens','Lee','Lexington','Marion','Marlboro','McCormick','Newberry','Oconee','Orangeburg','Pickens','Richland','Saluda','Spartanburg','Sumter','Union','Williamsburg','York'];
 
@@ -1007,6 +1042,19 @@ function updateStatusBadgeDisplay(val){
   badge.className='status-badge '+statusClass(val);
 }
 
+function updateStatusFromHistory(id, val){
+  const entry=scanHistory.find(h=>h.id===id);
+  if(!entry)return;
+  entry.meta.status=val;
+  localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));
+  // If this is the currently loaded record, update the scan page badge too
+  if(currentData&&JSON.stringify(currentData)===JSON.stringify(entry.data)){
+    const sel=document.getElementById('recordStatus');
+    if(sel)sel.value=val;
+    updateStatusBadgeDisplay(val);
+  }
+}
+
 function updateRecordStatus(val){
   updateStatusBadgeDisplay(val);
   // Save to current history entry
@@ -1086,6 +1134,16 @@ function clearHistory(){
   renderHistoryPage();updateLeftPanel();
   const badge=document.getElementById('exportRemindBadge');
   if(badge)badge.style.display='none';
+}
+
+function setCountyYear(county, year){
+  countyYearState[county] = year;
+  renderHistoryPage();
+  // Scroll back to that county after re-render
+  setTimeout(()=>{
+    const el=document.getElementById('county-section-'+county.replace(/ /g,'-'));
+    if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+  },50);
 }
 
 function sortByCol(key) {
@@ -1195,7 +1253,11 @@ function renderHistoryPage(){
     <td class="td-grantee">${h.data['Grantee']!=='—'?h.data['Grantee']:'<span style="color:#ccc">—</span>'}${h.meta.isDup?'<span class="dup-badge">dup</span>':''}</td>
     <td class="td-addr">${h.data['Property Address']!=='—'?h.data['Property Address']:'<span style="color:#ccc">—</span>'}</td>
     <td>${h.data['Map #']!=='—'?h.data['Map #']:'—'}</td>
-    <td><span class="status-badge ${statusClass(h.meta.status||'No Action Yet')}">${h.meta.status||'No Action Yet'}</span></td>
+    <td onclick="event.stopPropagation()" style="padding:4px 8px;">
+      <select class="status-inline-select" onchange="updateStatusFromHistory(${h.id},this.value)" style="color:inherit;">
+        ${['No Action Yet','Available','Assigned','Retained','Sold'].map(s=>`<option value="${s}" ${(h.meta.status||'No Action Yet')===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </td>
     <td class="td-price">${h.data['Sale Price']!=='—'?h.data['Sale Price']:'—'}</td>
     <td class="td-price" style="color:var(--danger)">${h.data['Taxes Owed']!=='—'?h.data['Taxes Owed']:'—'}</td>
     <td class="td-date">${h.data['Tax Sale Auction Date']!=='—'?h.data['Tax Sale Auction Date']:'—'}</td>
@@ -1218,25 +1280,44 @@ function renderHistoryPage(){
   const countyGroups={};
   items.forEach(h=>{const k=h.meta.county||'Unknown County';if(!countyGroups[k])countyGroups[k]=[];countyGroups[k].push(h);});
 
-  Object.keys(countyGroups).sort().forEach(county=>{
+  const sortedCounties = Object.keys(countyGroups).sort();
+
+  const navStrip = document.getElementById('countyNavStrip');
+  const navBtns = document.getElementById('countyNavBtns');
+  if(navStrip && sortedCounties.length > 1){
+    navStrip.style.display='flex';
+    navBtns.innerHTML = sortedCounties.map(c =>
+      `<button class="county-nav-btn" onclick="document.getElementById('cs-${c.replace(/ /g,'-')}').scrollIntoView({behavior:'smooth',block:'start'})">${c}</button>`
+    ).join('');
+  } else if(navStrip){ navStrip.style.display='none'; }
+
+  sortedCounties.forEach(county=>{
     const group=countyGroups[county];
-    html+=`<div class="county-section">
+    const cid='cs-'+county.replace(/ /g,'-');
+    const years=[...new Set(group.map(h=>new Date(h.id).getFullYear()))].sort((a,b)=>b-a);
+    const activeYear = countyYearState[county] !== undefined ? countyYearState[county] : years[0];
+    const yearTabsHtml = years.length > 1
+      ? `<div class="year-tabs">${years.map(y=>`<button class="year-tab${y===activeYear?' active':''}" onclick="event.stopPropagation();setCountyYear('${county}',${y})">${y}</button>`).join('')}</div>`
+      : `<span style="font-size:10px;color:rgba(255,255,255,0.6);margin-left:6px">${years[0]||''}</span>`;
+    const fg = group.filter(h => new Date(h.id).getFullYear() === activeYear);
+
+    html+=`<div class="county-section" id="${cid}">
       <div class="county-section-header">
         <span class="county-section-name">${county} County</span>
-        <span class="county-section-count">${group.length} record${group.length!==1?'s':''}</span>
-        ${countySubtotal(group)}
-        <button class="county-export-btn" onclick="event.stopPropagation();exportCountyCSV('${county.replace(/'/g,"\'")}')" title="Export ${county} County records">Export ↓</button>
+        ${yearTabsHtml}
+        <span class="county-section-count">${fg.length} record${fg.length!==1?'s':''}</span>
+        ${countySubtotal(fg)}
+        <button class="county-export-btn" onclick="event.stopPropagation();exportCountyCSV('${county.replace(/'/g,"\'")}')">Export ↓</button>
       </div>`;
 
     if(groupBy==='date'){
-      // Within each county, sub-group by date
-      const dateGroups={};
-      group.forEach(h=>{const k=new Date(h.id).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});if(!dateGroups[k])dateGroups[k]=[];dateGroups[k].push(h);});
-      Object.keys(dateGroups).forEach(d=>{
-        html+=`<div class="hist-group-label" style="margin-top:8px">${d}</div><table class="hist-table">${th}<tbody>${trows(dateGroups[d])}</tbody></table>`;
+      const dg={};
+      fg.forEach(h=>{const k=new Date(h.id).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});if(!dg[k])dg[k]=[];dg[k].push(h);});
+      Object.keys(dg).forEach(d=>{
+        html+=`<div class="hist-group-label" style="margin-top:8px">${d}</div><table class="hist-table">${th}<tbody>${trows(dg[d])}</tbody></table>`;
       });
     } else {
-      html+=`<table class="hist-table">${th}<tbody>${trows(group)}</tbody></table>`;
+      html+=`<table class="hist-table">${th}<tbody>${trows(fg)}</tbody></table>`;
     }
     html+='</div>';
   });
